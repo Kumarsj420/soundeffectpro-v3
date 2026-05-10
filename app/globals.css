@@ -1,26 +1,137 @@
 @import "tailwindcss";
 
+/* ── Design tokens ─────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg:          #09090b;
+  --surface-1:   #111113;
+  --surface-2:   #18181b;
+  --surface-3:   #27272a;
+  --border:      rgba(255 255 255 / 0.07);
+  --border-hover:rgba(255 255 255 / 0.14);
+  --primary:     #f97316;
+  --primary-dim: rgba(249 115 22 / 0.15);
+  --text:        #fafafa;
+  --text-muted:  #a1a1aa;
+  --text-dim:    #52525b;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ── Base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-geist, system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Sound sprite button ──────────────────────────────── */
+.sound-btn {
+  --scale-factor: 0.849;
+  width:  calc(118px * var(--scale-factor));
+  height: calc(97.5px * var(--scale-factor));
+  background-image: image-set(
+    url('/btns.avif') type('image/avif'),
+    url('/btns.webp') type('image/webp'),
+    url('/btns.png')  type('image/png')
+  );
+  background-repeat: no-repeat;
+  background-size: calc(247px * var(--scale-factor)) calc(98px * var(--scale-factor));
+  background-position: 0 0;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: filter 0.15s ease;
+}
+.sound-btn:active { background-position: calc(-129px * var(--scale-factor)) 0; }
+.sound-btn:hover  { filter: brightness(1.15); }
+
+/* mini size for cards */
+.mini-btn .sound-btn { --scale-factor: 0.60; }
+
+/* playing animation */
+.btn-animation { animation: btn-anime 1.5s infinite linear; }
+@keyframes btn-anime {
+  0%   { filter: hue-rotate(0deg)   brightness(1.25); }
+  50%  { filter: hue-rotate(180deg) brightness(1.65); }
+  100% { filter: hue-rotate(360deg) brightness(1.25); }
+}
+
+/* ── Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255 255 255 / 0.10);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255 255 255 / 0.20); }
+
+/* ── Gradient text utility ─────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #f97316, #fb923c, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Card glow on hover ────────────────────────────────── */
+.card-glow:hover {
+  box-shadow: 0 0 0 1px rgba(249 115 22 / 0.2),
+              0 8px 32px rgba(0 0 0 / 0.4);
+}
+
+/* ── Noise texture overlay ────────────────────────────── */
+.noise::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ── Hide scrollbar utility (category strip) ───────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Radix UI resets ───────────────────────────────────── */
+[data-radix-popper-content-wrapper] { z-index: 50 !important; }
+
+.text-bounce {
+  width: 100%;
+  margin: 3rem auto;
+  display: inline-flex;
+  justify-content: center;
+  -webkit-box-reflect: below -20px linear-gradient(transparent, #211e1e2e);
+}
+
+.text-bounce span {
+  display: inline-flex;
+  font-family: "Play", sans-serif;
+  animation: text-bounce 2s infinite;
+}
+
+@keyframes text-bounce {
+
+  0%,
+  50%,
+  100% {
+    transform: translateY(0);
+  }
+
+  25% {
+    transform: translateY(-9px);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.ten span:nth-of-type(1) {
+  animation-delay: 0.2s;
+}
+
+.ten span:nth-of-type(2) {
+  animation-delay: 0.4s;
+}
+
+.ten span:nth-of-type(3) {
+  animation-delay: 0.6s;
 }

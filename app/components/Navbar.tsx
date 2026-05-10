@@ -44,7 +44,7 @@ function SearchBar() {
                     ? "border-orange-500/50 bg-white/8 shadow-lg shadow-orange-500/10"
                     : "border-white/8 bg-white/5 hover:bg-white/7 hover:border-white/12"
             )}>
-                <Search className="absolute left-4 h-4 w-4 text-[#52525b] pointer-events-none shrink-0" />
+                <Search className="absolute left-4 h-4 w-4 text-[#71717a] pointer-events-none shrink-0" />
                 <input
                     type="search"
                     value={q}
@@ -53,7 +53,7 @@ function SearchBar() {
                     onBlur={() => setFocused(false)}
                     placeholder="Search sounds, memes, games..."
                     aria-label="Search sounds"
-                    className="w-full bg-transparent pl-11 pr-3 py-2.5 text-sm text-white placeholder-[#52525b] outline-none"
+                    className="w-full bg-transparent pl-11 pr-3 py-2.5 text-sm text-white placeholder-[#71717a] outline-none"
                 />
                 {q && (
                     <button
@@ -128,14 +128,14 @@ export default function Navbar() {
                                         aria-label="User menu"
                                     >
                                         <Avatar src={session.user.image} name={session.user.name} />
-                                        <ChevronDown className="h-4 w-4 text-[#52525b] hidden sm:block transition-transform group-data-[state=open]:rotate-180" />
+                                        <ChevronDown className="h-4 w-4 text-[#71717a] hidden sm:block transition-transform group-data-[state=open]:rotate-180" />
                                     </button>
                                 </DropdownMenuTrigger>
 
                                 <DropdownMenuContent align="end" className="w-52">
                                     <DropdownMenuLabel className="normal-case text-xs font-normal text-[#a1a1aa] tracking-normal">
                                         <p className="font-semibold text-white text-sm truncate">{session.user.name}</p>
-                                        <p className="text-[#52525b] text-xs truncate">{session.user.email}</p>
+                                        <p className="text-[#71717a] text-xs truncate">{session.user.email}</p>
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator />
 
@@ -198,7 +198,7 @@ export default function Navbar() {
                                         "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-all shrink-0",
                                         active
                                             ? "bg-orange-500/15 text-orange-400"
-                                            : "text-[#71717a] hover:text-white hover:bg-white/6"
+                                            : "text-[#a1a1aa] hover:text-white hover:bg-white/6"
                                     )}
                                 >
                                     <Icon className={cn("h-3.5 w-3.5", active ? "text-orange-400" : cat.color)} />

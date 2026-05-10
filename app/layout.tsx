@@ -37,8 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <head>
                 {/* Preload sprite — used on every page with sound cards */}
                 <link rel="preload" as="image" href="/btns.avif" type="image/avif" />
-                {/* Warm up CDN connection before first audio play */}
-                {R2_ORIGIN && <link rel="preconnect" href={R2_ORIGIN} crossOrigin="anonymous" />}
+                {/* Warm up CDN connection — dns-prefetch only; preconnect causes "unused preconnect" Lighthouse warning since audio loads lazily */}
                 {R2_ORIGIN && <link rel="dns-prefetch" href={R2_ORIGIN} />}
                 {/* Google Analytics */}
                 <Script

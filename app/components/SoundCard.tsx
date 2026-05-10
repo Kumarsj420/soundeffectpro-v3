@@ -99,7 +99,7 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
                     </Link>
                     <div className="flex items-center gap-2">
                         <Badge variant={getCategoryVariant(category)}>{category}</Badge>
-                        <span className="text-xs text-[#52525b]">{duration}</span>
+                        <span className="text-xs text-[#a1a1aa]">{duration}</span>
                     </div>
                 </div>
             </div>
@@ -111,7 +111,7 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
                         <Link
                             key={tag}
                             href={`/search?q=${encodeURIComponent(tag)}`}
-                            className="text-xs text-[#52525b] bg-white/4 hover:bg-orange-500/15 hover:text-orange-400 rounded-full px-2 py-0.5 transition-colors"
+                            className="text-xs text-[#a1a1aa] bg-white/4 hover:bg-orange-500/15 hover:text-orange-400 rounded-full px-2 py-0.5 transition-colors"
                         >
                             #{tag}
                         </Link>
@@ -120,7 +120,7 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
             )}
 
             {/* Stats */}
-            <div className="flex items-center gap-3 text-xs text-[#52525b] mt-auto pt-1 border-t border-white/5">
+            <div className="flex items-center gap-3 text-xs text-[#a1a1aa] mt-auto pt-1 border-t border-white/5">
                 <span className="flex items-center gap-1">
                     <Flame className="h-3 w-3 text-orange-500/70" />
                     {fmt(stats.views)}
@@ -131,7 +131,7 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
                 </span>
                 <Link
                     href={`/sound/${slug}`}
-                    className="ml-auto text-[#3f3f46] hover:text-orange-400 transition-colors font-medium"
+                    className="ml-auto text-[#71717a] hover:text-orange-400 transition-colors font-medium"
                     aria-label={`Open ${title} sound page`}
                 >
                     Details →

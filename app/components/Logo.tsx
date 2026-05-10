@@ -1,7 +1,9 @@
+import Image from "next/image";
+
 export default function Logo() {
   return (
     <div className="flex items-center space-x-2 select-none">
-      <img src="/licon.webp" alt="logo icon" className='size-7' />
+      <Image src="/licon.webp" alt="SoundEffectPro logo" width={28} height={28} />
 
       <div className="relative py-2">
         <span className="text-lg font-extrabold  dark:text-zinc-200 tracking-tight">

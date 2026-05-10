@@ -1,16 +1,34 @@
 import mongoose from "mongoose";
 
-let isConnected = false;
+// Use a global cache so warm Lambda instances reuse the connection
+const cache: { promise: Promise<typeof mongoose> | null } = global.__mongoose_cache__ ??
+    (global.__mongoose_cache__ = { promise: null });
 
 export async function connectDB() {
-    if (isConnected) return;
+    // Already connected — reuse
+    if (mongoose.connection.readyState === 1) return;
 
-    const conn = await mongoose.connect(process.env.MONGO_URI!, {
+    // Connection in progress — wait for it
+    if (cache.promise) {
+        await cache.promise;
+        return;
+    }
+
+    if (!process.env.MONGO_URI) {
+        throw new Error("MONGO_URI environment variable is not set");
+    }
+
+    cache.promise = mongoose.connect(process.env.MONGO_URI, {
         dbName: "soundfx",
-        maxPoolSize: 20,
-        minPoolSize: 5,
+        maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
         socketTimeoutMS: 10000,
     });
-    isConnected = conn.connections[0].readyState === 1;
+
+    await cache.promise;
+}
+
+declare global {
+    // eslint-disable-next-line no-var
+    var __mongoose_cache__: { promise: Promise<typeof mongoose> | null };
 }

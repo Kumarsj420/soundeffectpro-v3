@@ -40,7 +40,7 @@ export default function Footer() {
                         <Logo />
                     </Link>
              
-                    <p className="text-sm text-[#52525b] leading-relaxed max-w-50">
+                    <p className="text-sm text-[#71717a] leading-relaxed max-w-50">
                         The internet's best meme sound effects. Free to play and download.
                     </p>
 
@@ -48,11 +48,11 @@ export default function Footer() {
 
                 {/* Categories */}
                 <div>
-                    <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-4">Categories</p>
+                    <p className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mb-4">Categories</p>
                     <ul className="space-y-2.5">
                         {CATEGORIES.map(c => (
                             <li key={c.href}>
-                                <Link href={c.href} className="text-sm text-[#52525b] hover:text-white transition-colors">
+                                <Link href={c.href} className="text-sm text-[#71717a] hover:text-white transition-colors">
                                     {c.label}
                                 </Link>
                             </li>
@@ -62,11 +62,11 @@ export default function Footer() {
 
                 {/* Platform */}
                 <div>
-                    <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-4">Platform</p>
+                    <p className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mb-4">Platform</p>
                     <ul className="space-y-2.5">
                         {PLATFORM.map(c => (
                             <li key={c.href}>
-                                <Link href={c.href} className="text-sm text-[#52525b] hover:text-white transition-colors">
+                                <Link href={c.href} className="text-sm text-[#71717a] hover:text-white transition-colors">
                                     {c.label}
                                 </Link>
                             </li>
@@ -76,11 +76,11 @@ export default function Footer() {
 
                 {/* Legal */}
                 <div>
-                    <p className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mb-4">Legal</p>
+                    <p className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mb-4">Legal</p>
                     <ul className="space-y-2.5">
                         {LEGAL.map(c => (
                             <li key={c.href}>
-                                <Link href={c.href} className="text-sm text-[#5f5f6b] hover:text-white transition-colors">
+                                <Link href={c.href} className="text-sm text-[#71717a] hover:text-white transition-colors">
                                     {c.label}
                                 </Link>
                             </li>
@@ -88,7 +88,7 @@ export default function Footer() {
                         <li>
                             <a
                                 href={`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "support@soundeffectpro.com"}`}
-                                className="text-sm text-[#52525b] hover:text-white transition-colors"
+                                className="text-sm text-[#71717a] hover:text-white transition-colors"
                             >
                                 Email Us
                             </a>
@@ -112,10 +112,10 @@ export default function Footer() {
             {/* Bottom bar */}
             <div className="border-t border-white/5 py-5">
                 <div className="mx-auto max-w-7xl px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <p className="text-xs text-[#3f3f46]">
+                    <p className="text-xs text-[#71717a]">
                         © {new Date().getFullYear()} SoundEffectPro. All rights reserved.
                     </p>
-                    <p className="text-xs text-[#3f3f46]">
+                    <p className="text-xs text-[#71717a]">
                         Made for meme lovers everywhere 🎵
                     </p>
                 </div>

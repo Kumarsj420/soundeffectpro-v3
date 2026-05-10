@@ -78,8 +78,9 @@ export default function AdBanner({
 
     return (
         <div
-            className={`w-full overflow-hidden ${isMultiplex ? "my-2" : ""} ${className}`}
+            role="region"
             aria-label="Advertisement"
+            className={`w-full overflow-hidden ${isMultiplex ? "my-2" : ""} ${className}`}
         >
             <ins
                 className="adsbygoogle"

@@ -12,13 +12,19 @@ export const revalidate = 60;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-    await connectDB();
-    const sounds = await File.find({ visibility: true })
-        .sort({ 'stats.views': -1 })
-        .limit(200)
-        .select('slug')
-        .lean();
-    return sounds.map((s) => ({ slug: s.slug }));
+    // Return empty at build time — dynamicParams=true + ISR handles all pages on demand.
+    // Avoids build failures when DB is unreachable during Vercel's build step.
+    try {
+        await connectDB();
+        const sounds = await File.find({ visibility: true })
+            .sort({ 'stats.views': -1 })
+            .limit(100)
+            .select('slug')
+            .lean();
+        return sounds.map((s) => ({ slug: s.slug }));
+    } catch {
+        return [];
+    }
 }
 
 export async function generateMetadata({
@@ -27,7 +33,11 @@ export async function generateMetadata({
     params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
     const { slug } = await params;
-    await connectDB();
+    try {
+        await connectDB();
+    } catch {
+        return { title: "Sound Not Found" };
+    }
     const sound = await File.findOne({ slug, visibility: true }).select('title description tags category').lean();
 
     if (!sound) return { title: "Sound Not Found" };

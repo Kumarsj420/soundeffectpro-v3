@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import AudioPlayer from "@/app/components/AudioPlayer";
@@ -79,8 +79,18 @@ export default async function SoundPage({
     const { slug } = await params;
     await connectDB();
 
-    const sound = await File.findOne({ slug, visibility: true }).lean();
-    if (!sound) notFound();
+    let sound = await File.findOne({ slug, visibility: true }).lean();
+    if (!sound) {
+        // Old slugs had a random 4–6 char suffix (e.g., "ahh-its-comming-out-zqlmx").
+        // Try stripping it and redirect permanently to the canonical URL.
+        const m = slug.match(/^(.+)-([a-z]{4,6})$/);
+        if (m) {
+            const base = m[1];
+            const baseDoc = await File.findOne({ slug: base, visibility: true }).select("slug").lean();
+            if (baseDoc) permanentRedirect(`/sound/${base}`);
+        }
+        notFound();
+    }
 
     const related = await File.find({
         visibility: true,

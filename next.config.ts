@@ -14,6 +14,15 @@ const nextConfig: NextConfig = {
             bodySizeLimit: '10mb',
         },
     },
+    async redirects() {
+        return [
+            // Old search URL format: /search/charlie → /search?q=charlie
+            { source: '/search/:query', destination: '/search?q=:query', permanent: true },
+            // Old tag URL format: /tag/meme → /search?q=meme
+            { source: '/tag/:tag',      destination: '/search?q=:tag',   permanent: true },
+        ];
+    },
+
     async headers() {
         return [
             {

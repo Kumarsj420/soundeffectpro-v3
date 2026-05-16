@@ -16,10 +16,32 @@ const nextConfig: NextConfig = {
     },
     async redirects() {
         return [
-            // Old search URL format: /search/charlie → /search?q=charlie
+            // ── Old search / tag ───────────────────────────────────────────────
             { source: '/search/:query', destination: '/search?q=:query', permanent: true },
-            // Old tag URL format: /tag/meme → /search?q=meme
             { source: '/tag/:tag',      destination: '/search?q=:tag',   permanent: true },
+
+            // ── Old category pages (/category/meme → /sounds/meme) ────────────
+            { source: '/category/:slug', destination: '/sounds/:slug', permanent: true },
+
+            // ── Old user pages (/user/:uid → /profile/:uid) ───────────────────
+            { source: '/user/:uid', destination: '/profile/:uid', permanent: true },
+
+            // ── Old /page/* legal routes ──────────────────────────────────────
+            { source: '/page/privacy-policy',       destination: '/privacy',        permanent: true },
+            { source: '/page/terms-conditions',     destination: '/terms',          permanent: true },
+            { source: '/page/dmca-copyright',       destination: '/dmca',           permanent: true },
+            { source: '/page/community-guidelines', destination: '/content-policy', permanent: true },
+            { source: '/page/cookie-policy',        destination: '/privacy',        permanent: true },
+            { source: '/page/:path*',               destination: '/',               permanent: true },
+
+            // ── Old core / filter pages ───────────────────────────────────────
+            { source: '/popular',               destination: '/', permanent: true },
+            { source: '/recent-buttons',        destination: '/', permanent: true },
+            { source: '/most-viewed',           destination: '/', permanent: true },
+            { source: '/filter-buttons',        destination: '/', permanent: true },
+            { source: '/soundboard',            destination: '/', permanent: true },
+            { source: '/soundboard/:path*',     destination: '/', permanent: true },
+            { source: '/filter-board',          destination: '/', permanent: true },
         ];
     },
 

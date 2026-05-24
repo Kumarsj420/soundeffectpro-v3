@@ -88,23 +88,34 @@ export default async function SoundPage({
     await connectDB();
 
     let sound;
+    let needsCanonicalRedirect = false;
 
     if (s_id) {
-        // Fetch by unique s_id
+        // 1. Try fetching by the parsed s_id (fast path for proper canonical URLs)
         sound = await File.findOne({ s_id, visibility: true }).lean();
 
-        if (!sound) notFound();
+        if (!sound) {
+            // parseSoundParam may have misidentified a slug word as an s_id
+            // (e.g., "keyboard-typing" → s_id="typing" which is just part of the slug).
+            // Fall back: try the full URL param as a slug, then the base slug.
+            sound =
+                await File.findOne({ slug: urlParam, visibility: true }).lean() ??
+                await File.findOne({ slug, visibility: true }).lean();
 
-        // Enforce canonical URL: if slug part doesn't match, 301 to correct URL
-        const canonical = `${sound.slug}-${sound.s_id}`;
-        if (urlParam !== canonical) {
-            permanentRedirect(`/sound/${canonical}`);
+            if (!sound) notFound();
+            needsCanonicalRedirect = true;
         }
     } else {
-        // No s_id in URL — look up by slug and redirect to canonical URL with s_id
+        // No s_id suffix — look up by slug and redirect to canonical URL with s_id
         sound = await File.findOne({ slug, visibility: true }).lean();
         if (!sound) notFound();
-        permanentRedirect(`/sound/${sound.slug}-${sound.s_id}`);
+        needsCanonicalRedirect = true;
+    }
+
+    // Redirect to canonical /sound/{slug}-{s_id} if not already there
+    const canonical = `${sound.slug}-${sound.s_id}`;
+    if (needsCanonicalRedirect || urlParam !== canonical) {
+        permanentRedirect(`/sound/${canonical}`);
     }
 
     const related = await File.find({

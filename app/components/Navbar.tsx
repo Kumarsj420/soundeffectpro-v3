@@ -4,12 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
     Search, Upload, LogOut, User, Shield,
     Flame, Clock, Music2, Gamepad2, Laugh,
-    ChevronDown, X, Menu, Waves,
-    Home, TrendingUp, Zap, BookOpen,
+    ChevronDown, X, Menu, BookOpen,
+    Home, Zap, ArrowRight, History, TrendingUp,
 } from "lucide-react";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -19,18 +19,18 @@ import { cn } from "@/app/lib/utils";
 import Logo from "./Logo";
 
 const NAV_CATEGORIES = [
-    { label: "Trending",  href: "/sounds/meme",      icon: Flame,    color: "text-orange-400" },
-    { label: "Meme",      href: "/sounds/meme",      icon: Laugh,    color: "text-yellow-400" },
-    { label: "Gaming",    href: "/search?q=gaming",  icon: Gamepad2, color: "text-emerald-400" },
-    { label: "Anime",     href: "/sounds/anime",     icon: Music2,   color: "text-pink-400" },
-    { label: "Music",     href: "/search?q=music",   icon: Music2,   color: "text-violet-400" },
-    { label: "Latest",    href: "/search?sort=newest", icon: Clock,  color: "text-sky-400" },
+    { label: "Trending",  href: "/sounds/meme",       icon: Flame,    color: "text-orange-400" },
+    { label: "Meme",      href: "/sounds/meme",       icon: Laugh,    color: "text-yellow-400" },
+    { label: "Gaming",    href: "/search?q=gaming",   icon: Gamepad2, color: "text-emerald-400" },
+    { label: "Anime",     href: "/sounds/anime",      icon: Music2,   color: "text-pink-400" },
+    { label: "Music",     href: "/search?q=music",    icon: Music2,   color: "text-violet-400" },
+    { label: "Latest",    href: "/search?sort=newest",icon: Clock,    color: "text-sky-400" },
 ];
 
 const DRAWER_LINKS = [
     { label: "Home",       href: "/",                   icon: Home },
     { label: "Trending",   href: "/sounds/meme",        icon: Flame },
-    { label: "Viral",      href: "/search?sort=popular", icon: Zap },
+    { label: "Viral",      href: "/search?sort=popular",icon: Zap },
     { label: "Meme",       href: "/sounds/meme",        icon: Laugh },
     { label: "Anime",      href: "/sounds/anime",       icon: Music2 },
     { label: "Gaming",     href: "/search?q=gaming",    icon: Gamepad2 },
@@ -41,7 +41,197 @@ const DRAWER_LINKS = [
     { label: "Contact",    href: "/contact",            icon: BookOpen },
 ];
 
-// ── Desktop search bar ──────────────────────────────────────────────────────
+const POPULAR_TAGS = [
+    "bruh", "vine boom", "anime wow", "meme", "gaming",
+    "tiktok", "discord", "funny", "rizz", "sus",
+];
+
+const RECENT_KEY = "sfx_recent_searches";
+const MAX_RECENT = 6;
+
+function saveRecent(q: string) {
+    try {
+        const prev: string[] = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+        const next = [q, ...prev.filter(s => s !== q)].slice(0, MAX_RECENT);
+        localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+    } catch { /* ignore */ }
+}
+
+function getRecent(): string[] {
+    try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]"); } catch { return []; }
+}
+
+// ── Mobile Search Overlay ────────────────────────────────────────────────────
+function MobileSearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
+    const router   = useRouter();
+    const inputRef = useRef<HTMLInputElement>(null);
+    const [q, setQ]           = useState("");
+    const [recent, setRecent] = useState<string[]>([]);
+
+    // Load recent searches when overlay opens
+    useEffect(() => {
+        if (open) {
+            setQ("");
+            setRecent(getRecent());
+            // Small delay so the animation starts before focusing
+            setTimeout(() => inputRef.current?.focus(), 80);
+        }
+    }, [open]);
+
+    // Close on ESC
+    useEffect(() => {
+        if (!open) return;
+        const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    }, [open, onClose]);
+
+    // Lock body scroll
+    useEffect(() => {
+        document.body.style.overflow = open ? "hidden" : "";
+        return () => { document.body.style.overflow = ""; };
+    }, [open]);
+
+    function navigate(query: string) {
+        const trimmed = query.trim();
+        if (!trimmed) return;
+        saveRecent(trimmed);
+        onClose();
+        router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    }
+
+    function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        navigate(q);
+    }
+
+    function clearRecent() {
+        localStorage.removeItem(RECENT_KEY);
+        setRecent([]);
+    }
+
+    return (
+        <>
+            {/* Backdrop */}
+            <div
+                aria-hidden
+                onClick={onClose}
+                className={cn(
+                    "fixed inset-0 z-50 bg-black/70 backdrop-blur-sm transition-opacity duration-200 sm:hidden",
+                    open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                )}
+            />
+
+            {/* Panel — slides down from top */}
+            <div className={cn(
+                "fixed inset-x-0 top-0 z-50 bg-[#0d0d0f] border-b border-white/10 shadow-2xl transition-transform duration-300 ease-out sm:hidden",
+                open ? "translate-y-0" : "-translate-y-full"
+            )}>
+                {/* Search input row */}
+                <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 h-14 border-b border-white/8">
+                    <Search className="h-5 w-5 text-white/40 shrink-0" />
+                    <input
+                        ref={inputRef}
+                        type="search"
+                        value={q}
+                        onChange={e => setQ(e.target.value)}
+                        placeholder="Search sounds, memes, games…"
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        className="flex-1 bg-transparent text-white text-base placeholder-white/30 outline-none py-2"
+                    />
+                    {q ? (
+                        <button
+                            type="button"
+                            onClick={() => setQ("")}
+                            className="shrink-0 p-1.5 rounded-full hover:bg-white/8 text-white/50 hover:text-white transition-colors"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="shrink-0 p-1.5 rounded-full hover:bg-white/8 text-white/50 hover:text-white transition-colors"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    )}
+                </form>
+
+                {/* Suggestions body */}
+                <div className="max-h-[70vh] overflow-y-auto overscroll-contain">
+
+                    {/* Search button when typing */}
+                    {q.trim() && (
+                        <button
+                            onClick={() => navigate(q)}
+                            className="flex w-full items-center gap-3 px-5 py-3.5 text-sm hover:bg-white/5 transition-colors border-b border-white/6 text-left"
+                        >
+                            <Search className="h-4 w-4 text-orange-400 shrink-0" />
+                            <span className="text-white">Search for <strong className="text-orange-400">"{q.trim()}"</strong></span>
+                            <ArrowRight className="h-4 w-4 text-white/30 ml-auto shrink-0" />
+                        </button>
+                    )}
+
+                    {/* Recent searches */}
+                    {!q && recent.length > 0 && (
+                        <div className="px-4 pt-4 pb-2">
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Recent</p>
+                                <button
+                                    onClick={clearRecent}
+                                    className="text-xs text-white/30 hover:text-orange-400 transition-colors"
+                                >
+                                    Clear
+                                </button>
+                            </div>
+                            <ul className="space-y-0.5">
+                                {recent.map((term) => (
+                                    <li key={term}>
+                                        <button
+                                            onClick={() => navigate(term)}
+                                            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/6 transition-colors text-left"
+                                        >
+                                            <History className="h-4 w-4 text-white/30 shrink-0" />
+                                            <span className="flex-1 truncate">{term}</span>
+                                            <ArrowRight className="h-3.5 w-3.5 text-white/20 shrink-0" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    {/* Popular tags */}
+                    <div className="px-4 pt-4 pb-6">
+                        <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
+                            {q ? "Popular" : "Trending Searches"}
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {POPULAR_TAGS
+                                .filter(tag => !q || tag.includes(q.toLowerCase()))
+                                .map((tag) => (
+                                    <button
+                                        key={tag}
+                                        onClick={() => navigate(tag)}
+                                        className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 hover:border-orange-500/40 hover:bg-orange-500/10 hover:text-orange-400 px-3 py-1.5 text-xs text-white/60 transition-all"
+                                    >
+                                        <TrendingUp className="h-3 w-3" />
+                                        {tag}
+                                    </button>
+                                ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+}
+
+// ── Desktop search bar ───────────────────────────────────────────────────────
 function SearchBar() {
     const router  = useRouter();
     const [q, setQ] = useState("");
@@ -85,7 +275,7 @@ function SearchBar() {
     );
 }
 
-// ── User avatar ─────────────────────────────────────────────────────────────
+// ── User avatar ──────────────────────────────────────────────────────────────
 function Avatar({ src, name }: { src?: string | null; name?: string | null }) {
     if (src) {
         return (
@@ -100,22 +290,16 @@ function Avatar({ src, name }: { src?: string | null; name?: string | null }) {
     );
 }
 
-// ── Hamburger drawer (mobile only) ──────────────────────────────────────────
+// ── Hamburger drawer ─────────────────────────────────────────────────────────
 function HamburgerDrawer({
-    open,
-    onClose,
-    session,
+    open, onClose, session,
 }: {
     open: boolean;
     onClose: () => void;
     session: ReturnType<typeof useSession>["data"];
 }) {
     const pathname = usePathname();
-
-    // Close on route change
     useEffect(() => { onClose(); }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    // Lock body scroll while open
     useEffect(() => {
         document.body.style.overflow = open ? "hidden" : "";
         return () => { document.body.style.overflow = ""; };
@@ -123,52 +307,34 @@ function HamburgerDrawer({
 
     return (
         <>
-            {/* Backdrop */}
-            <div
-                aria-hidden
-                onClick={onClose}
+            <div aria-hidden onClick={onClose}
                 className={cn(
                     "fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300 sm:hidden",
                     open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
                 )}
             />
-
-            {/* Drawer panel */}
             <aside className={cn(
                 "fixed top-0 left-0 z-50 h-full w-72 bg-[#0d0d0f] border-r border-white/8 flex flex-col transition-transform duration-300 ease-in-out sm:hidden",
                 open ? "translate-x-0" : "-translate-x-full"
             )}>
-                {/* Drawer header */}
-                <div className="flex items-center justify-between px-4 h-16 border-b border-white/8 shrink-0">
-                    <Link href="/" onClick={onClose}>
-                        <Logo />
-                    </Link>
-                    <button
-                        onClick={onClose}
-                        aria-label="Close menu"
-                        className="rounded-full p-2 hover:bg-white/8 transition-colors text-white/60 hover:text-white"
-                    >
+                <div className="flex items-center justify-between px-4 h-14 border-b border-white/8 shrink-0">
+                    <Link href="/" onClick={onClose}><Logo /></Link>
+                    <button onClick={onClose} aria-label="Close menu"
+                        className="rounded-full p-2 hover:bg-white/8 transition-colors text-white/60 hover:text-white">
                         <X className="h-5 w-5" />
                     </button>
                 </div>
 
-                {/* Nav links */}
                 <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
                     {DRAWER_LINKS.map((link) => {
-                        const Icon = link.icon;
+                        const Icon  = link.icon;
                         const active = pathname === link.href;
                         return (
-                            <Link
-                                key={link.label + link.href}
-                                href={link.href}
-                                onClick={onClose}
+                            <Link key={link.label + link.href} href={link.href} onClick={onClose}
                                 className={cn(
                                     "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                                    active
-                                        ? "bg-orange-500/15 text-orange-400"
-                                        : "text-white/60 hover:text-white hover:bg-white/6"
-                                )}
-                            >
+                                    active ? "bg-orange-500/15 text-orange-400" : "text-white/60 hover:text-white hover:bg-white/6"
+                                )}>
                                 <Icon className="h-4 w-4 shrink-0" />
                                 {link.label}
                             </Link>
@@ -176,37 +342,26 @@ function HamburgerDrawer({
                     })}
                 </nav>
 
-                {/* Drawer footer — user section */}
                 <div className="border-t border-white/8 p-4 shrink-0">
                     {session ? (
                         <div className="space-y-2">
-                            <Link
-                                href={`/profile/${session.user.uid}`}
-                                onClick={onClose}
-                                className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/6 transition-colors"
-                            >
+                            <Link href={`/profile/${session.user.uid}`} onClick={onClose}
+                                className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/6 transition-colors">
                                 <Avatar src={session.user.image} name={session.user.name} />
                                 <div className="min-w-0">
                                     <p className="text-sm font-semibold text-white truncate">{session.user.name}</p>
                                     <p className="text-xs text-white/40 truncate">{session.user.email}</p>
                                 </div>
                             </Link>
-                            <button
-                                onClick={() => { onClose(); signOut({ callbackUrl: "/" }); }}
-                                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                            >
-                                <LogOut className="h-4 w-4 shrink-0" />
-                                Sign out
+                            <button onClick={() => { onClose(); signOut({ callbackUrl: "/" }); }}
+                                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
+                                <LogOut className="h-4 w-4 shrink-0" /> Sign out
                             </button>
                         </div>
                     ) : (
-                        <Link
-                            href="/login"
-                            onClick={onClose}
-                            className="flex items-center justify-center gap-2 w-full rounded-xl bg-orange-500 hover:bg-orange-400 px-4 py-2.5 text-sm font-semibold text-white transition-colors"
-                        >
-                            <User className="h-4 w-4" />
-                            Sign In
+                        <Link href="/login" onClick={onClose}
+                            className="flex items-center justify-center gap-2 w-full rounded-xl bg-orange-500 hover:bg-orange-400 px-4 py-2.5 text-sm font-semibold text-white transition-colors">
+                            <User className="h-4 w-4" /> Sign In
                         </Link>
                     )}
                 </div>
@@ -215,19 +370,25 @@ function HamburgerDrawer({
     );
 }
 
-// ── Main Navbar ──────────────────────────────────────────────────────────────
+// ── Main Navbar ───────────────────────────────────────────────────────────────
 export default function Navbar() {
     const { data: session } = useSession();
     const pathname = usePathname();
-    const router   = useRouter();
-    const [scrolled, setScrolled] = useState(false);
-    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [scrolled,    setScrolled]    = useState(false);
+    const [drawerOpen,  setDrawerOpen]  = useState(false);
+    const [searchOpen,  setSearchOpen]  = useState(false);
 
     useEffect(() => {
         const handler = () => setScrolled(window.scrollY > 8);
         window.addEventListener("scroll", handler, { passive: true });
         return () => window.removeEventListener("scroll", handler);
     }, []);
+
+    // Close search overlay on route change
+    useEffect(() => { setSearchOpen(false); }, [pathname]);
+
+    const openSearch  = useCallback(() => { setDrawerOpen(false); setSearchOpen(true);  }, []);
+    const closeSearch = useCallback(() => setSearchOpen(false), []);
 
     return (
         <>
@@ -237,77 +398,30 @@ export default function Navbar() {
                     ? "bg-[#09090b]/95 backdrop-blur-xl border-b border-white/8 shadow-xl shadow-black/20"
                     : "bg-[#09090b]/80 backdrop-blur-md border-b border-white/5"
             )}>
-
-                {/* ── Mobile header ─────────────────────────────────────── */}
-                <div className="flex sm:hidden items-center justify-between px-4 h-14 gap-3">
+                {/* ── Mobile header: ☰  LOGO  🔍 ─────────────────────── */}
+                <div className="flex sm:hidden items-center px-4 h-14">
                     {/* Hamburger */}
                     <button
                         onClick={() => setDrawerOpen(true)}
                         aria-label="Open menu"
-                        className="rounded-xl p-2 -ml-1.5 hover:bg-white/8 transition-colors text-white/70 hover:text-white shrink-0"
+                        className="rounded-xl p-2 -ml-2 hover:bg-white/8 transition-colors text-white/70 hover:text-white shrink-0 tap-highlight-transparent"
                     >
                         <Menu className="h-5 w-5" />
                     </button>
 
-                    {/* Logo — centred */}
-                    <Link href="/" className="absolute left-1/2 -translate-x-1/2">
+                    {/* Centred logo */}
+                    <Link href="/" className="absolute left-1/2 -translate-x-1/2 tap-highlight-transparent">
                         <Logo />
                     </Link>
 
-                    {/* Right: search icon + avatar/sign-in */}
-                    <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                        <button
-                            onClick={() => router.push("/search")}
-                            aria-label="Search"
-                            className="rounded-xl p-2 hover:bg-white/8 transition-colors text-white/70 hover:text-white"
-                        >
-                            <Search className="h-5 w-5" />
-                        </button>
-
-                        {session ? (
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <button className="group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" aria-label="User menu">
-                                        <Avatar src={session.user.image} name={session.user.name} />
-                                    </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52">
-                                    <DropdownMenuLabel className="normal-case text-xs font-normal text-[#a1a1aa] tracking-normal">
-                                        <p className="font-semibold text-white text-sm truncate">{session.user.name}</p>
-                                        <p className="text-[#71717a] text-xs truncate">{session.user.email}</p>
-                                    </DropdownMenuLabel>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem asChild>
-                                        <Link href={`/profile/${session.user.uid}`}><User className="h-4 w-4" /> My Profile</Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem asChild>
-                                        <Link href="/upload"><Upload className="h-4 w-4" /> Upload Sound</Link>
-                                    </DropdownMenuItem>
-                                    {(session.user.role === "admin" || session.user.role === "moderator") && (
-                                        <>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem asChild>
-                                                <Link href="/admin" className="text-orange-400 focus:text-orange-300">
-                                                    <Shield className="h-4 w-4" /> Moderation
-                                                </Link>
-                                            </DropdownMenuItem>
-                                        </>
-                                    )}
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })} className="text-red-400 focus:text-red-300">
-                                        <LogOut className="h-4 w-4" /> Sign out
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        ) : (
-                            <Link
-                                href="/login"
-                                className="rounded-full border border-white/15 hover:border-orange-500/50 hover:text-orange-400 px-3 py-1.5 text-xs font-medium transition-all"
-                            >
-                                Sign in
-                            </Link>
-                        )}
-                    </div>
+                    {/* Search icon — right */}
+                    <button
+                        onClick={openSearch}
+                        aria-label="Search"
+                        className="ml-auto rounded-xl p-2 -mr-2 hover:bg-white/8 transition-colors text-white/70 hover:text-white shrink-0 tap-highlight-transparent"
+                    >
+                        <Search className="h-5 w-5" />
+                    </button>
                 </div>
 
                 {/* ── Desktop header ────────────────────────────────────── */}
@@ -321,10 +435,8 @@ export default function Navbar() {
                     <div className="flex items-center gap-2 shrink-0">
                         {session ? (
                             <>
-                                <Link
-                                    href="/upload"
-                                    className="flex items-center gap-1.5 rounded-full bg-orange-500 hover:bg-orange-400 px-4 py-2 text-sm font-semibold text-white transition-all shadow-lg shadow-orange-500/25 hover:-translate-y-px"
-                                >
+                                <Link href="/upload"
+                                    className="flex items-center gap-1.5 rounded-full bg-orange-500 hover:bg-orange-400 px-4 py-2 text-sm font-semibold text-white transition-all shadow-lg shadow-orange-500/25 hover:-translate-y-px">
                                     <Upload className="h-4 w-4" /> Upload
                                 </Link>
                                 <DropdownMenu>
@@ -361,34 +473,27 @@ export default function Navbar() {
                                 </DropdownMenu>
                             </>
                         ) : (
-                            <Link
-                                href="/login"
-                                className="rounded-full border border-white/15 hover:border-orange-500/50 hover:text-orange-400 px-4 py-2 text-sm font-medium transition-all hover:bg-orange-500/5"
-                            >
+                            <Link href="/login"
+                                className="rounded-full border border-white/15 hover:border-orange-500/50 hover:text-orange-400 px-4 py-2 text-sm font-medium transition-all hover:bg-orange-500/5">
                                 Sign in
                             </Link>
                         )}
                     </div>
                 </div>
 
-                {/* ── Category pill strip (desktop only) ───────────────── */}
+                {/* ── Category strip (desktop only) ─────────────────────── */}
                 <nav aria-label="Browse categories" className="hidden sm:block border-t border-white/5">
                     <div className="mx-auto max-w-7xl px-6">
                         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-2">
                             {NAV_CATEGORIES.map((cat) => {
-                                const Icon = cat.icon;
+                                const Icon   = cat.icon;
                                 const active = pathname === cat.href;
                                 return (
-                                    <Link
-                                        key={cat.label}
-                                        href={cat.href}
+                                    <Link key={cat.label} href={cat.href}
                                         className={cn(
                                             "flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-all shrink-0",
-                                            active
-                                                ? "bg-orange-500/15 text-orange-400"
-                                                : "text-[#a1a1aa] hover:text-white hover:bg-white/6"
-                                        )}
-                                    >
+                                            active ? "bg-orange-500/15 text-orange-400" : "text-[#a1a1aa] hover:text-white hover:bg-white/6"
+                                        )}>
                                         <Icon className={cn("h-3.5 w-3.5", active ? "text-orange-400" : cat.color)} />
                                         {cat.label}
                                     </Link>
@@ -399,12 +504,9 @@ export default function Navbar() {
                 </nav>
             </header>
 
-            {/* Hamburger drawer — rendered outside header so it covers full viewport */}
-            <HamburgerDrawer
-                open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
-                session={session}
-            />
+            {/* Drawer & Search — rendered outside header to cover full viewport */}
+            <HamburgerDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} session={session} />
+            <MobileSearchOverlay open={searchOpen} onClose={closeSearch} />
         </>
     );
 }

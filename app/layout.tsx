@@ -37,8 +37,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <head>
                 {/* Preload sprite — used on every page with sound cards */}
                 <link rel="preload" as="image" href="/btns.avif" type="image/avif" />
-                {/* Warm up CDN connection — dns-prefetch only; preconnect causes "unused preconnect" Lighthouse warning since audio loads lazily */}
+                {/* Warm up CDN connection for audio files */}
                 {R2_ORIGIN && <link rel="dns-prefetch" href={R2_ORIGIN} />}
+                {/* Preconnect to AdSense/GTM origins — shaves ~200–400 ms off first ad load */}
+                <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
+                <link rel="preconnect" href="https://googletagservices.com"         crossOrigin="anonymous" />
+                <link rel="preconnect" href="https://googletagmanager.com"          crossOrigin="anonymous" />
+                <link rel="dns-prefetch" href="https://adservice.google.com" />
+                <link rel="dns-prefetch" href="https://tpc.googlesyndication.com" />
                 {/* Google Analytics */}
                 <Script
                     src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}

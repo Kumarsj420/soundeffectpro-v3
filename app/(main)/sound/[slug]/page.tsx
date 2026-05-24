@@ -7,18 +7,50 @@ import AudioPlayer from "@/app/components/AudioPlayer";
 import SoundCard from "@/app/components/SoundCard";
 import ReportButton from "@/app/components/ReportButton";
 import AdBanner from "@/app/components/AdBanner";
+import ShareButton from "@/app/components/ShareButton";
 import { parseSoundParam } from "@/app/lib/utils";
 
-export const revalidate = 3600;
+// 5 min revalidation — keeps content fresh without ISR write spikes
+export const revalidate = 300;
 export const dynamicParams = true;
+
+const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "");
+
+/** Convert MM:SS → ISO 8601 duration (PT14S, PT1M30S, PT2M) */
+function toIsoDuration(mmss: string): string {
+    const [m, s] = mmss.split(":").map(Number);
+    if (!m) return `PT${s}S`;
+    if (!s) return `PT${m}M`;
+    return `PT${m}M${s}S`;
+}
+
+/** Keyword-rich auto-description when a sound has no manual description */
+function autoDescription(
+    title: string,
+    category: string,
+    tags: string[],
+    duration: string,
+    views: number,
+    downloads: number
+): string {
+    const topTags = tags.slice(0, 4).join(", ");
+    const plays = views >= 1000 ? `${Math.round(views / 1000)}K` : String(views);
+    const dl = downloads >= 1000 ? `${Math.round(downloads / 1000)}K` : String(downloads);
+    return (
+        `Play and download the "${title}" ${category.toLowerCase()} sound effect for free. ` +
+        `${duration} MP3 · ${plays} plays · ${dl} downloads. ` +
+        (topTags ? `Tags: ${topTags}. ` : "") +
+        `Perfect for Discord soundboards, TikTok videos, memes, gaming streams, and content creation.`
+    );
+}
 
 export async function generateStaticParams() {
     try {
         await connectDB();
         const sounds = await File.find({ visibility: true })
-            .sort({ 'stats.views': -1 })
-            .limit(100)
-            .select('slug s_id')
+            .sort({ "stats.views": -1 })
+            .limit(200)
+            .select("slug s_id")
             .lean();
         return sounds.map((s) => ({ slug: `${s.slug}-${s.s_id}` }));
     } catch {
@@ -34,46 +66,79 @@ export async function generateMetadata({
     const { slug: urlParam } = await params;
     const { s_id, slug } = parseSoundParam(urlParam);
 
-    try {
-        await connectDB();
-    } catch {
-        return { title: "Sound Not Found" };
-    }
+    try { await connectDB(); } catch { return { title: "Sound Not Found" }; }
 
     const sound = s_id
-        ? await File.findOne({ s_id, visibility: true }).select('title description tags category slug s_id').lean()
-        : await File.findOne({ slug, visibility: true }).select('title description tags category slug s_id').lean();
+        ? await File.findOne({ s_id, visibility: true })
+            .select("title description tags category slug s_id duration stats")
+            .lean()
+        : await File.findOne({ slug, visibility: true })
+            .select("title description tags category slug s_id duration stats")
+            .lean();
 
     if (!sound) return { title: "Sound Not Found" };
 
+    const category   = sound.category ?? "Random";
     const canonicalParam = `${sound.slug}-${sound.s_id}`;
+    const canonicalUrl   = `${BASE}/sound/${canonicalParam}`;
+    const stats      = (sound.stats ?? {}) as Record<string, number>;
+    const views      = stats.views ?? 0;
+    const downloads  = stats.downloads ?? 0;
+
+    const description = sound.description ||
+        autoDescription(sound.title, category, sound.tags, sound.duration, views, downloads);
+
+    // Title: "<Name> Sound Effect — Free MP3 Download" → template adds "| SoundEffectPro"
+    const title = `${sound.title} Sound Effect — Free MP3 Download`;
 
     return {
-        title: `${sound.title} Sound Effect`,
-        description: sound.description || `Play and download the "${sound.title}" sound effect. Category: ${sound.category}. Tags: ${sound.tags.slice(0, 5).join(', ')}.`,
-        keywords: [sound.title, ...sound.tags, sound.category, 'sound effect', 'meme sound'],
+        title,
+        description,
+        keywords: [
+            sound.title,
+            `${sound.title} sound effect`,
+            `${sound.title} meme sound`,
+            `${sound.title} mp3`,
+            `${sound.title} free download`,
+            ...sound.tags,
+            category,
+            "sound effect",
+            "meme sound",
+            "free download",
+            "soundboard",
+        ],
+        alternates: { canonical: canonicalUrl },
         openGraph: {
-            title: `${sound.title} — SoundEffectPro`,
-            description: sound.description || `Play the "${sound.title}" sound effect for free.`,
-            url: `/sound/${canonicalParam}`,
-            type: 'website',
+            title: `${sound.title} Sound Effect — SoundEffectPro`,
+            description,
+            url: canonicalUrl,
+            type: "website",
+            siteName: "SoundEffectPro",
         },
-        alternates: { canonical: `/sound/${canonicalParam}` },
+        twitter: {
+            card: "summary",
+            title: `${sound.title} Sound Effect`,
+            description,
+        },
     };
 }
 
 function toPlainSound(doc: unknown) {
-    const d = doc as Record<string, unknown>;
+    const d    = doc as Record<string, unknown>;
     const stats = (d.stats ?? {}) as Record<string, number>;
     return {
-        s_id: d.s_id as string,
-        slug: d.slug as string,
-        title: d.title as string,
+        s_id:     d.s_id     as string,
+        slug:     d.slug     as string,
+        title:    d.title    as string,
         duration: d.duration as string,
-        tags: (d.tags as string[]) ?? [],
-        category: d.category as string,
-        btnColor: (d.btnColor as string) ?? '0',
-        stats: { views: stats.views ?? 0, downloads: stats.downloads ?? 0, likes: stats.likes ?? 0 },
+        tags:     (d.tags as string[]) ?? [],
+        category: (d.category as string) ?? "Random",
+        btnColor: (d.btnColor as string) ?? "0",
+        stats: {
+            views:     stats.views     ?? 0,
+            downloads: stats.downloads ?? 0,
+            likes:     stats.likes     ?? 0,
+        },
     };
 }
 
@@ -83,7 +148,7 @@ export default async function SoundPage({
     params: Promise<{ slug: string }>;
 }) {
     const { slug: urlParam } = await params;
-    const { s_id, slug } = parseSoundParam(urlParam);
+    const { s_id, slug }     = parseSoundParam(urlParam);
 
     await connectDB();
 
@@ -91,32 +156,30 @@ export default async function SoundPage({
     let needsCanonicalRedirect = false;
 
     if (s_id) {
-        // 1. Try fetching by the parsed s_id (fast path for proper canonical URLs)
         sound = await File.findOne({ s_id, visibility: true }).lean();
 
         if (!sound) {
-            // parseSoundParam may have misidentified a slug word as an s_id
-            // (e.g., "keyboard-typing" → s_id="typing" which is just part of the slug).
-            // Fall back: try the full URL param as a slug, then the base slug.
+            // Fallback: parseSoundParam may have split a slug word as s_id
             sound =
                 await File.findOne({ slug: urlParam, visibility: true }).lean() ??
-                await File.findOne({ slug, visibility: true }).lean();
-
+                await File.findOne({ slug,            visibility: true }).lean();
             if (!sound) notFound();
             needsCanonicalRedirect = true;
         }
     } else {
-        // No s_id suffix — look up by slug and redirect to canonical URL with s_id
         sound = await File.findOne({ slug, visibility: true }).lean();
         if (!sound) notFound();
         needsCanonicalRedirect = true;
     }
 
-    // Redirect to canonical /sound/{slug}-{s_id} if not already there
     const canonical = `${sound.slug}-${sound.s_id}`;
     if (needsCanonicalRedirect || urlParam !== canonical) {
         permanentRedirect(`/sound/${canonical}`);
     }
+
+    const category     = (sound.category as string) ?? "Random";
+    const categorySlug = category.toLowerCase();
+    const canonicalUrl = `${BASE}/sound/${canonical}`;
 
     const related = await File.find({
         visibility: true,
@@ -126,26 +189,55 @@ export default async function SoundPage({
             { tags: { $in: sound.tags.slice(0, 3) } },
         ],
     })
-        .sort({ 'stats.views': -1 })
+        .sort({ "stats.views": -1 })
         .limit(6)
-        .select('s_id slug title duration tags category btnColor stats')
+        .select("s_id slug title duration tags category btnColor stats")
         .lean();
 
-    const s = toPlainSound(sound as unknown as Record<string, unknown>);
-    const stats = (sound.stats as unknown as Record<string, number>) ?? {};
-    const canonicalParam = `${sound.slug}-${sound.s_id}`;
+    const s      = toPlainSound(sound as unknown as Record<string, unknown>);
+    const stats  = (sound.stats as unknown as Record<string, number>) ?? {};
+    const views  = stats.views  ?? 0;
+    const dl     = stats.downloads ?? 0;
+    const likes  = stats.likes  ?? 0;
 
-    // JSON-LD structured data
-    const jsonLd = {
+    const description = (sound.description as string) ||
+        autoDescription(sound.title as string, category, sound.tags as string[], sound.duration as string, views, dl);
+
+    // ── JSON-LD: AudioObject ──────────────────────────────────────────────────
+    const audioLd = {
+        "@context":      "https://schema.org",
+        "@type":         "AudioObject",
+        name:            `${sound.title} Sound Effect`,
+        description,
+        url:             canonicalUrl,
+        contentUrl:      `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/store/${sound.s_id}.mp3`,
+        encodingFormat:  "audio/mpeg",
+        duration:        toIsoDuration(sound.duration as string),
+        uploadDate:      (sound.createdAt as Date).toISOString().split("T")[0],
+        keywords:        (sound.tags as string[]).join(", "),
+        interactionStatistic: [
+            {
+                "@type": "InteractionCounter",
+                interactionType: "https://schema.org/ListenAction",
+                userInteractionCount: views,
+            },
+            {
+                "@type": "InteractionCounter",
+                interactionType: "https://schema.org/DownloadAction",
+                userInteractionCount: dl,
+            },
+        ],
+    };
+
+    // ── JSON-LD: BreadcrumbList ───────────────────────────────────────────────
+    const breadcrumbLd = {
         "@context": "https://schema.org",
-        "@type": "AudioObject",
-        name: sound.title,
-        description: sound.description,
-        contentUrl: `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/store/${sound.s_id}.mp3`,
-        encodingFormat: "audio/mpeg",
-        duration: `PT${sound.duration.replace(':', 'M')}S`,
-        uploadDate: sound.createdAt.toISOString(),
-        keywords: sound.tags.join(', '),
+        "@type":    "BreadcrumbList",
+        itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home",            item: BASE },
+            { "@type": "ListItem", position: 2, name: `${category} Sounds`, item: `${BASE}/sounds/${categorySlug}` },
+            { "@type": "ListItem", position: 3, name: `${sound.title} Sound Effect` },
+        ],
     };
 
     return (
@@ -154,30 +246,32 @@ export default async function SoundPage({
             <nav aria-label="Breadcrumb" className="text-sm text-white/40 mb-6 flex items-center gap-1.5">
                 <Link href="/" className="hover:text-white transition-colors">Home</Link>
                 <span>/</span>
-                <Link href={`/sounds/${(sound.category ?? 'random').toLowerCase()}`} className="hover:text-white transition-colors">{sound.category ?? 'Random'}</Link>
+                <Link href={`/sounds/${categorySlug}`} className="hover:text-white transition-colors">
+                    {category}
+                </Link>
                 <span>/</span>
-                <span className="text-white/70 truncate">{sound.title}</span>
+                <span className="text-white/70 truncate">{sound.title as string}</span>
             </nav>
 
             <div className="grid lg:grid-cols-3 gap-8">
-                {/* Main */}
+                {/* ── Main column ── */}
                 <div className="lg:col-span-2 space-y-6">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2">{sound.title}</h1>
+                        <h1 className="text-3xl font-bold mb-2">{sound.title as string} Sound Effect</h1>
                         <div className="flex flex-wrap items-center gap-3 text-sm text-white/40">
-                            <span>{sound.duration}</span>
-                            <Link href={`/sounds/${(sound.category ?? 'random').toLowerCase()}`} className="hover:text-orange-400 transition-colors">
-                                {sound.category}
+                            <span>{sound.duration as string}</span>
+                            <Link href={`/sounds/${categorySlug}`} className="hover:text-orange-400 transition-colors">
+                                {category}
                             </Link>
-                            <span>{stats.views?.toLocaleString() ?? 0} plays</span>
-                            <span>{stats.downloads?.toLocaleString() ?? 0} downloads</span>
+                            <span>{views.toLocaleString()} plays</span>
+                            <span>{dl.toLocaleString()} downloads</span>
                         </div>
                     </div>
 
-                    {/* Player — pass full canonicalParam so API routes receive slug-s_id */}
+                    {/* Player */}
                     <AudioPlayer
                         s_id={s.s_id}
-                        slug={canonicalParam}
+                        slug={canonical}
                         title={s.title}
                         duration={s.duration}
                     />
@@ -186,16 +280,16 @@ export default async function SoundPage({
                     {sound.description && (
                         <div className="rounded-2xl border border-white/8 bg-[#141414] p-5">
                             <h2 className="font-semibold mb-2 text-white/80">About this sound</h2>
-                            <p className="text-sm text-white/60 leading-relaxed">{sound.description}</p>
+                            <p className="text-sm text-white/60 leading-relaxed">{sound.description as string}</p>
                         </div>
                     )}
 
                     {/* Tags */}
-                    {sound.tags.length > 0 && (
+                    {(sound.tags as string[]).length > 0 && (
                         <div>
                             <h2 className="font-semibold mb-3 text-white/80">Tags</h2>
                             <div className="flex flex-wrap gap-2">
-                                {sound.tags.map((tag: string) => (
+                                {(sound.tags as string[]).map((tag) => (
                                     <Link
                                         key={tag}
                                         href={`/search?q=${encodeURIComponent(tag)}`}
@@ -210,39 +304,45 @@ export default async function SoundPage({
 
                     {/* Actions */}
                     <div className="flex items-center gap-3 flex-wrap">
-                        <LikeButton urlParam={canonicalParam} likes={stats.likes ?? 0} />
-                        <ShareButton title={sound.title} />
-                        <ReportButton slug={canonicalParam} />
+                        <LikeButton urlParam={canonical} likes={likes} />
+                        <ShareButton title={sound.title as string} url={canonicalUrl} />
+                        <ReportButton slug={canonical} />
                     </div>
 
-                    {/* Ad: in-article after actions — high attention spot */}
+                    {/* Ad: in-article */}
                     <AdBanner
                         type="in-article"
                         slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_IN_ARTICLE ?? ""}
                     />
 
                     {/* Creator */}
-                    {sound.user?.name && (
+                    {(sound.user as { name?: string })?.name && (
                         <div className="rounded-2xl border border-white/8 bg-[#141414] p-4 flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold">
-                                {sound.user.name[0].toUpperCase()}
+                                {(sound.user as { name: string }).name[0].toUpperCase()}
                             </div>
                             <div>
                                 <p className="text-xs text-white/40">Uploaded by</p>
-                                <Link href={`/profile/${sound.user.uid}`} className="font-semibold hover:text-orange-400 transition-colors text-sm">
-                                    {sound.user.name}
+                                <Link
+                                    href={`/profile/${(sound.user as { uid: string }).uid}`}
+                                    className="font-semibold hover:text-orange-400 transition-colors text-sm"
+                                >
+                                    {(sound.user as { name: string }).name}
                                 </Link>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Related sidebar */}
+                {/* ── Related sidebar ── */}
                 <aside className="space-y-3">
                     <h2 className="font-semibold text-white/80">Related Sounds</h2>
                     {related.length > 0 ? (
                         related.map((r) => (
-                            <SoundCard key={(r as { s_id: string }).s_id} {...toPlainSound(r as unknown as Record<string, unknown>)} />
+                            <SoundCard
+                                key={(r as { s_id: string }).s_id}
+                                {...toPlainSound(r as unknown as Record<string, unknown>)}
+                            />
                         ))
                     ) : (
                         <p className="text-white/30 text-sm">No related sounds found.</p>
@@ -258,7 +358,7 @@ export default async function SoundPage({
                 </aside>
             </div>
 
-            {/* Ad: Multiplex at page bottom — catches users before they leave */}
+            {/* Ad: Multiplex at page bottom */}
             <AdBanner
                 type="multiplex"
                 slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_MULTIPLEX ?? ""}
@@ -266,20 +366,19 @@ export default async function SoundPage({
             />
 
             {/* JSON-LD */}
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-            />
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(audioLd) }} />
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
         </div>
     );
 }
 
+// ── Server action button ─────────────────────────────────────────────────────
 function LikeButton({ urlParam, likes }: { urlParam: string; likes: number }) {
     return (
         <form
             action={async () => {
                 "use server";
-                await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/sound/${urlParam}/like`, {
+                await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}api/sound/${urlParam}/like`, {
                     method: "POST",
                 }).catch(() => null);
             }}
@@ -294,21 +393,5 @@ function LikeButton({ urlParam, likes }: { urlParam: string; likes: number }) {
                 {likes.toLocaleString()} Likes
             </button>
         </form>
-    );
-}
-
-function ShareButton({ title }: { title: string }) {
-    return (
-        <button
-            onClick={undefined}
-            type="button"
-            className="flex items-center gap-2 rounded-full border border-white/15 hover:border-white/30 px-4 py-2 text-sm transition-colors"
-            aria-label="Share this sound"
-        >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m9.032 4.026a3 3 0 10-5.716-1.684M9 12a9.002 9.002 0 01-2.348 6.026M9 12A9.003 9.003 0 0112 3" />
-            </svg>
-            Share
-        </button>
     );
 }

@@ -21,6 +21,25 @@ export const metadata: Metadata = {
     },
 };
 
+const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "");
+
+// WebSite schema tells Google to show a sitelinks search box in results
+const websiteLd = {
+    "@context": "https://schema.org",
+    "@type":    "WebSite",
+    name:       "SoundEffectPro",
+    url:        BASE,
+    description: "The best free meme sound effects, viral audio clips, and soundboard sounds.",
+    potentialAction: {
+        "@type":       "SearchAction",
+        target: {
+            "@type":       "EntryPoint",
+            urlTemplate:   `${BASE}/search?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+    },
+};
+
 const CATEGORIES = [
     { label: "Meme", slug: "meme", emoji: "😂", variant: "meme" as const, href: "/sounds/meme" },
     { label: "Anime", slug: "anime", emoji: "🎌", variant: "anime" as const, href: "/sounds/anime" },
@@ -86,6 +105,8 @@ export default async function HomePage() {
 
     return (
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 sm:py-12 space-y-14 sm:space-y-16">
+            {/* WebSite JSON-LD — enables sitelinks search box in Google */}
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
 
             {/* -- Hero -- */}
             <section className="relative text-center py-10 overflow-hidden">

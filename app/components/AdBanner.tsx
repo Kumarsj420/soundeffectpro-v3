@@ -20,33 +20,45 @@ interface AdBannerProps {
 
 const AD_CLIENT = process.env.NEXT_PUBLIC_GOOGLE_AD_CLIENT ?? "";
 
+/**
+ * Minimum heights per ad type to prevent Cumulative Layout Shift (CLS).
+ * CLS > 0.1 hurts both Core Web Vitals score and AdSense RPM.
+ * These values match the typical smallest auto-size ad Google serves.
+ */
+const MIN_HEIGHT: Record<AdType, number> = {
+    "display":    90,   // leaderboard / banner minimum
+    "in-article": 280,  // fluid in-article cards
+    "in-feed":    280,  // fluid in-feed cards
+    "multiplex":  300,  // relaxed multiplex grid
+};
+
 function getInsProps(type: AdType, slot: string, format: string, layoutKey?: string) {
     switch (type) {
         case "multiplex":
             return {
                 "data-ad-client": AD_CLIENT,
-                "data-ad-slot": slot,
+                "data-ad-slot":   slot,
                 "data-ad-format": "autorelaxed",
             };
         case "in-article":
             return {
                 "data-ad-client": AD_CLIENT,
-                "data-ad-slot": slot,
+                "data-ad-slot":   slot,
                 "data-ad-layout": "in-article",
                 "data-ad-format": "fluid",
             };
         case "in-feed":
             return {
                 "data-ad-client": AD_CLIENT,
-                "data-ad-slot": slot,
+                "data-ad-slot":   slot,
                 "data-ad-format": "fluid",
                 ...(layoutKey ? { "data-ad-layout-key": layoutKey } : {}),
             };
         default: // display
             return {
-                "data-ad-client": AD_CLIENT,
-                "data-ad-slot": slot,
-                "data-ad-format": format,
+                "data-ad-client":           AD_CLIENT,
+                "data-ad-slot":             slot,
+                "data-ad-format":           format,
                 "data-full-width-responsive": "true",
             };
     }
@@ -56,7 +68,7 @@ export default function AdBanner({
     type,
     slot,
     className = "",
-    format = "auto",
+    format    = "auto",
     layoutKey,
 }: AdBannerProps) {
     const pushed = useRef(false);
@@ -67,24 +79,25 @@ export default function AdBanner({
             pushed.current = true;
             (window.adsbygoogle = window.adsbygoogle || []).push({});
         } catch {
-            // script not loaded yet
+            // AdSense script not yet loaded — will initialise when it does
         }
     }, [slot]);
 
     if (!AD_CLIENT || !slot) return null;
 
-    const insProps = getInsProps(type, slot, format, layoutKey);
-    const isMultiplex = type === "multiplex";
+    const insProps   = getInsProps(type, slot, format, layoutKey);
+    const minHeight  = MIN_HEIGHT[type];
 
     return (
         <div
             role="region"
             aria-label="Advertisement"
-            className={`w-full overflow-hidden ${isMultiplex ? "my-2" : ""} ${className}`}
+            style={{ minHeight }}
+            className={`w-full overflow-hidden ${className}`}
         >
             <ins
                 className="adsbygoogle"
-                style={{ display: "block", textAlign: isMultiplex ? undefined : "center" }}
+                style={{ display: "block", textAlign: "center" }}
                 {...insProps}
             />
         </div>

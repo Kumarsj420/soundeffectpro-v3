@@ -94,6 +94,9 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ── Mobile tap highlight removal ─────────────────────── */
+.tap-highlight-transparent { -webkit-tap-highlight-color: transparent; }
+
 /* ── Radix UI resets ───────────────────────────────────── */
 [data-radix-popper-content-wrapper] { z-index: 50 !important; }
 

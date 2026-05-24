@@ -115,7 +115,7 @@ export default function AudioPlayer({ s_id, slug, title, duration }: AudioPlayer
                     onClick={togglePlay}
                     aria-label={playing ? "Pause" : "Play"}
                     disabled={loading}
-                    className="flex-shrink-0 w-12 h-12 rounded-full bg-orange-500 hover:bg-orange-400 disabled:opacity-50 flex items-center justify-center transition-colors"
+                    className="shrink-0 w-12 h-12 rounded-full bg-orange-500 hover:bg-orange-400 disabled:opacity-50 flex items-center justify-center transition-colors"
                 >
                     {loading ? (
                         <svg className="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -132,10 +132,10 @@ export default function AudioPlayer({ s_id, slug, title, duration }: AudioPlayer
                     )}
                 </button>
 
-                <div className="flex-1 space-y-1.5">
+                <div className="flex-1 min-w-0 space-y-1.5">
                     <p className="text-sm font-semibold truncate">{title}</p>
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/40 tabular-nums w-10">{formatTime(currentTime)}</span>
+                        <span className="text-xs text-white/40 tabular-nums w-10 shrink-0">{formatTime(currentTime)}</span>
                         <input
                             type="range"
                             min={0}
@@ -143,12 +143,12 @@ export default function AudioPlayer({ s_id, slug, title, duration }: AudioPlayer
                             value={currentTime}
                             onChange={handleSeek}
                             aria-label="Seek"
-                            className="flex-1 h-1 rounded-full accent-orange-500 cursor-pointer"
+                            className="flex-1 min-w-0 h-1 rounded-full accent-orange-500 cursor-pointer"
                             style={{
                                 background: `linear-gradient(to right, #f97316 ${progress}%, rgba(255,255,255,0.15) ${progress}%)`,
                             }}
                         />
-                        <span className="text-xs text-white/40 tabular-nums w-10 text-right">{duration}</span>
+                        <span className="text-xs text-white/40 tabular-nums w-10 shrink-0 text-right">{duration}</span>
                     </div>
                 </div>
 
@@ -156,7 +156,7 @@ export default function AudioPlayer({ s_id, slug, title, duration }: AudioPlayer
                 <button
                     onClick={handleDownload}
                     aria-label="Download sound"
-                    className="flex-shrink-0 w-10 h-10 rounded-full border border-white/15 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center transition-colors"
+                    className="shrink-0 w-10 h-10 rounded-full border border-white/15 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center transition-colors"
                 >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 8l-3-3m3 3l3-3" />

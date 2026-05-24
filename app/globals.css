@@ -23,6 +23,7 @@ body {
   color: var(--text);
   font-family: var(--font-geist, system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden; /* prevent any element from widening the page horizontally */
 }
 
 /* ── Sound sprite button ──────────────────────────────── */

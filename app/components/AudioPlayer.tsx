@@ -136,18 +136,23 @@ export default function AudioPlayer({ s_id, slug, title, duration }: AudioPlayer
                     <p className="text-sm font-semibold truncate">{title}</p>
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-white/40 tabular-nums w-10 shrink-0">{formatTime(currentTime)}</span>
-                        <input
-                            type="range"
-                            min={0}
-                            max={totalTime || 100}
-                            value={currentTime}
-                            onChange={handleSeek}
-                            aria-label="Seek"
-                            className="flex-1 min-w-0 h-1 rounded-full accent-orange-500 cursor-pointer"
-                            style={{
-                                background: `linear-gradient(to right, #f97316 ${progress}%, rgba(255,255,255,0.15) ${progress}%)`,
-                            }}
-                        />
+                        {/* Wrapper div is the flex item — input fills it with w-full.
+                            input[type=range] ignores min-w-0 when it's a direct flex
+                            child; a block wrapper bypasses the browser minimum. */}
+                        <div className="flex-1 min-w-0">
+                            <input
+                                type="range"
+                                min={0}
+                                max={totalTime || 100}
+                                value={currentTime}
+                                onChange={handleSeek}
+                                aria-label="Seek"
+                                className="w-full h-1 rounded-full accent-orange-500 cursor-pointer block"
+                                style={{
+                                    background: `linear-gradient(to right, #f97316 ${progress}%, rgba(255,255,255,0.15) ${progress}%)`,
+                                }}
+                            />
+                        </div>
                         <span className="text-xs text-white/40 tabular-nums w-10 shrink-0 text-right">{duration}</span>
                     </div>
                 </div>

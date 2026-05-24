@@ -81,7 +81,7 @@ export async function generateMetadata({
     const category   = sound.category ?? "Random";
     const canonicalParam = `${sound.slug}-${sound.s_id}`;
     const canonicalUrl   = `${BASE}/sound/${canonicalParam}`;
-    const stats      = (sound.stats ?? {}) as Record<string, number>;
+    const stats      = (sound.stats ?? {}) as unknown as Record<string, number>;
     const views      = stats.views ?? 0;
     const downloads  = stats.downloads ?? 0;
 

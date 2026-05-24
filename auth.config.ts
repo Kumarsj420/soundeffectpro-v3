@@ -27,7 +27,7 @@ export const authConfig: NextAuthConfig = {
             // Exclude real hyphenated routes like /content-policy
             const REAL_HYPHENATED = new Set(["/content-policy"]);
             const v1Match = !REAL_HYPHENATED.has(pathname) &&
-                pathname.match(/^\/([a-z][a-z0-9]*(?:-[a-z0-9]+){1,})-([a-z0-9]{4,6})$/);
+                pathname.match(/^\/([a-z][a-z0-9]*(?:-[a-z0-9]+)*)-([a-z0-9]{4,6})$/);
             if (v1Match) {
                 return Response.redirect(new URL(`/sound/${v1Match[1]}-${v1Match[2]}`, nextUrl), 301);
             }

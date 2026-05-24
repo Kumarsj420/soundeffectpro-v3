@@ -1,5 +1,6 @@
 import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
+import { parseSoundParam } from "@/app/lib/utils";
 import { getWeekStart, getMonthStart, getHalfYearStart } from "@/app/lib/statsPeriod";
 
 export async function POST(
@@ -7,11 +8,14 @@ export async function POST(
     { params }: { params: Promise<{ slug: string }> }
 ) {
     try {
-        const { slug } = await params;
+        const { slug: urlParam } = await params;
+        const { s_id } = parseSoundParam(urlParam);
+        if (!s_id) return Response.json({ ok: false }, { status: 400 });
+
         await connectDB();
 
         await File.findOneAndUpdate(
-            { slug, visibility: true },
+            { s_id, visibility: true },
             {
                 $inc: {
                     'stats.downloads': 1,

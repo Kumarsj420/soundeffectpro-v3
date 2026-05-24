@@ -7,14 +7,14 @@ const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").
 const CATEGORIES = ['meme', 'anime', 'gaming', 'music', 'movies', 'sports', 'series', 'politics', 'comedy', 'random'];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    let sounds: { slug: string; updatedAt: Date }[] = [];
+    let sounds: { slug: string; s_id: string; updatedAt: Date }[] = [];
     try {
         await connectDB();
         sounds = await File.find({ visibility: true })
             .sort({ 'stats.views': -1 })
-            .select('slug updatedAt')
+            .select('slug s_id updatedAt')
             .limit(50000)
-            .lean() as { slug: string; updatedAt: Date }[];
+            .lean() as { slug: string; s_id: string; updatedAt: Date }[];
     } catch {
         // Return static pages only if DB unreachable
     }
@@ -37,7 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
     const soundUrls: MetadataRoute.Sitemap = sounds.map((s) => ({
-        url: `${BASE}/sound/${s.slug}`,
+        url: `${BASE}/sound/${s.slug}-${s.s_id}`,
         lastModified: s.updatedAt,
         changeFrequency: 'weekly',
         priority: 0.8,

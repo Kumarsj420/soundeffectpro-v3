@@ -7,21 +7,20 @@ import AudioPlayer from "@/app/components/AudioPlayer";
 import SoundCard from "@/app/components/SoundCard";
 import ReportButton from "@/app/components/ReportButton";
 import AdBanner from "@/app/components/AdBanner";
+import { parseSoundParam } from "@/app/lib/utils";
 
-export const revalidate = 60;
+export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-    // Return empty at build time — dynamicParams=true + ISR handles all pages on demand.
-    // Avoids build failures when DB is unreachable during Vercel's build step.
     try {
         await connectDB();
         const sounds = await File.find({ visibility: true })
             .sort({ 'stats.views': -1 })
             .limit(100)
-            .select('slug')
+            .select('slug s_id')
             .lean();
-        return sounds.map((s) => ({ slug: s.slug }));
+        return sounds.map((s) => ({ slug: `${s.slug}-${s.s_id}` }));
     } catch {
         return [];
     }
@@ -32,15 +31,22 @@ export async function generateMetadata({
 }: {
     params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-    const { slug } = await params;
+    const { slug: urlParam } = await params;
+    const { s_id, slug } = parseSoundParam(urlParam);
+
     try {
         await connectDB();
     } catch {
         return { title: "Sound Not Found" };
     }
-    const sound = await File.findOne({ slug, visibility: true }).select('title description tags category').lean();
+
+    const sound = s_id
+        ? await File.findOne({ s_id, visibility: true }).select('title description tags category slug s_id').lean()
+        : await File.findOne({ slug, visibility: true }).select('title description tags category slug s_id').lean();
 
     if (!sound) return { title: "Sound Not Found" };
+
+    const canonicalParam = `${sound.slug}-${sound.s_id}`;
 
     return {
         title: `${sound.title} Sound Effect`,
@@ -49,10 +55,10 @@ export async function generateMetadata({
         openGraph: {
             title: `${sound.title} — SoundEffectPro`,
             description: sound.description || `Play the "${sound.title}" sound effect for free.`,
-            url: `/sound/${slug}`,
+            url: `/sound/${canonicalParam}`,
             type: 'website',
         },
-        alternates: { canonical: `/sound/${slug}` },
+        alternates: { canonical: `/sound/${canonicalParam}` },
     };
 }
 
@@ -76,25 +82,34 @@ export default async function SoundPage({
 }: {
     params: Promise<{ slug: string }>;
 }) {
-    const { slug } = await params;
+    const { slug: urlParam } = await params;
+    const { s_id, slug } = parseSoundParam(urlParam);
+
     await connectDB();
 
-    let sound = await File.findOne({ slug, visibility: true }).lean();
-    if (!sound) {
-        // Old slugs had a random 4–6 char suffix (e.g., "ahh-its-comming-out-zqlmx").
-        // Try stripping it and redirect permanently to the canonical URL.
-        const m = slug.match(/^(.+)-([a-z]{4,6})$/);
-        if (m) {
-            const base = m[1];
-            const baseDoc = await File.findOne({ slug: base, visibility: true }).select("slug").lean();
-            if (baseDoc) permanentRedirect(`/sound/${base}`);
+    let sound;
+
+    if (s_id) {
+        // Fetch by unique s_id
+        sound = await File.findOne({ s_id, visibility: true }).lean();
+
+        if (!sound) notFound();
+
+        // Enforce canonical URL: if slug part doesn't match, 301 to correct URL
+        const canonical = `${sound.slug}-${sound.s_id}`;
+        if (urlParam !== canonical) {
+            permanentRedirect(`/sound/${canonical}`);
         }
-        notFound();
+    } else {
+        // No s_id in URL — look up by slug and redirect to canonical URL with s_id
+        sound = await File.findOne({ slug, visibility: true }).lean();
+        if (!sound) notFound();
+        permanentRedirect(`/sound/${sound.slug}-${sound.s_id}`);
     }
 
     const related = await File.find({
         visibility: true,
-        slug: { $ne: slug },
+        s_id: { $ne: sound.s_id },
         $or: [
             { category: sound.category },
             { tags: { $in: sound.tags.slice(0, 3) } },
@@ -107,6 +122,7 @@ export default async function SoundPage({
 
     const s = toPlainSound(sound as unknown as Record<string, unknown>);
     const stats = (sound.stats as unknown as Record<string, number>) ?? {};
+    const canonicalParam = `${sound.slug}-${sound.s_id}`;
 
     // JSON-LD structured data
     const jsonLd = {
@@ -147,10 +163,10 @@ export default async function SoundPage({
                         </div>
                     </div>
 
-                    {/* Player */}
+                    {/* Player — pass full canonicalParam so API routes receive slug-s_id */}
                     <AudioPlayer
                         s_id={s.s_id}
-                        slug={s.slug}
+                        slug={canonicalParam}
                         title={s.title}
                         duration={s.duration}
                     />
@@ -183,9 +199,9 @@ export default async function SoundPage({
 
                     {/* Actions */}
                     <div className="flex items-center gap-3 flex-wrap">
-                        <LikeButton slug={slug} likes={stats.likes ?? 0} />
-                        <ShareButton title={sound.title} slug={slug} />
-                        <ReportButton slug={slug} />
+                        <LikeButton urlParam={canonicalParam} likes={stats.likes ?? 0} />
+                        <ShareButton title={sound.title} />
+                        <ReportButton slug={canonicalParam} />
                     </div>
 
                     {/* Ad: in-article after actions — high attention spot */}
@@ -247,12 +263,12 @@ export default async function SoundPage({
     );
 }
 
-function LikeButton({ slug, likes }: { slug: string; likes: number }) {
+function LikeButton({ urlParam, likes }: { urlParam: string; likes: number }) {
     return (
         <form
             action={async () => {
                 "use server";
-                await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/sound/${slug}/like`, {
+                await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/sound/${urlParam}/like`, {
                     method: "POST",
                 }).catch(() => null);
             }}
@@ -270,7 +286,7 @@ function LikeButton({ slug, likes }: { slug: string; likes: number }) {
     );
 }
 
-function ShareButton({ title, slug }: { title: string; slug: string }) {
+function ShareButton({ title }: { title: string }) {
     return (
         <button
             onClick={undefined}

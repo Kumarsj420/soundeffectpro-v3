@@ -60,7 +60,8 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
         try {
             await audioRef.current.play();
             setPlaying(true);
-            fetch(`/api/sound/${slug}/play`, { method: "POST" }).catch(() => null);
+            // API param is slug-s_id so the route can look up by unique s_id
+            fetch(`/api/sound/${slug}-${s_id}/play`, { method: "POST" }).catch(() => null);
         } catch {
             // autoplay blocked or network error
         } finally {
@@ -92,7 +93,7 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
 
                 <div className="flex-1 min-w-0 space-y-1">
                     <Link
-                        href={`/sound/${slug}`}
+                        href={`/sound/${slug}-${s_id}`}
                         className="block font-semibold text-sm text-white hover:text-orange-400 transition-colors line-clamp-2 leading-snug"
                     >
                         {title}
@@ -130,7 +131,7 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
                     {fmt(stats.downloads)}
                 </span>
                 <Link
-                    href={`/sound/${slug}`}
+                    href={`/sound/${slug}-${s_id}`}
                     className="ml-auto text-[#71717a] hover:text-orange-400 transition-colors font-medium"
                     aria-label={`Open ${title} sound page`}
                 >

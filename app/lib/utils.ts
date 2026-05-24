@@ -20,8 +20,8 @@ export function parseSoundParam(param: string): { slug: string; s_id: string | n
   const v2 = param.match(/^(.+)-([0-9a-f]{32})$/);
   if (v2) return { slug: v2[1], s_id: v2[2] };
 
-  // Old v1 records: 4-6 lowercase alphabetic chars
-  const v1 = param.match(/^(.+)-([a-z]{4,6})$/);
+  // Old v1 records: 4-6 lowercase alphanumeric chars (e.g. "ikal9", "zqlmx", "iqzs3")
+  const v1 = param.match(/^(.+)-([a-z0-9]{4,6})$/);
   if (v1) return { slug: v1[1], s_id: v1[2] };
 
   return { slug: param, s_id: null };

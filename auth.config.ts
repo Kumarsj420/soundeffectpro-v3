@@ -21,12 +21,13 @@ export const authConfig: NextAuthConfig = {
                 return Response.redirect(new URL(`/sound/${v2Match[1]}-${v2Match[2]}`, nextUrl), 301);
             }
 
-            // 301: old v1 URL /{slug}-{4-6 lowercase letter s_id}  →  /sound/{slug}-{s_id}
+            // 301: old v1 URL /{slug}-{4-6 alphanumeric s_id}  →  /sound/{slug}-{s_id}
+            // e.g. /dreamybull-ikal9 → /sound/dreamybull-ikal9
             // e.g. /ahh-its-comming-out-zqlmx → /sound/ahh-its-comming-out-zqlmx
             // Exclude real hyphenated routes like /content-policy
             const REAL_HYPHENATED = new Set(["/content-policy"]);
             const v1Match = !REAL_HYPHENATED.has(pathname) &&
-                pathname.match(/^\/([a-z][a-z0-9]*(?:-[a-z0-9]+){1,})-([a-z]{4,6})$/);
+                pathname.match(/^\/([a-z][a-z0-9]*(?:-[a-z0-9]+){1,})-([a-z0-9]{4,6})$/);
             if (v1Match) {
                 return Response.redirect(new URL(`/sound/${v1Match[1]}-${v1Match[2]}`, nextUrl), 301);
             }

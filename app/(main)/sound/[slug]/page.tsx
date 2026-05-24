@@ -241,24 +241,24 @@ export default async function SoundPage({
     };
 
     return (
-        <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="mx-auto max-w-5xl px-4 py-4 sm:py-8 overflow-x-hidden">
             {/* Breadcrumb */}
-            <nav aria-label="Breadcrumb" className="text-sm text-white/40 mb-6 flex items-center gap-1.5">
-                <Link href="/" className="hover:text-white transition-colors">Home</Link>
-                <span>/</span>
-                <Link href={`/sounds/${categorySlug}`} className="hover:text-white transition-colors">
+            <nav aria-label="Breadcrumb" className="text-sm text-white/40 mb-4 sm:mb-6 flex items-center gap-1.5 min-w-0">
+                <Link href="/" className="hover:text-white transition-colors shrink-0">Home</Link>
+                <span className="shrink-0">/</span>
+                <Link href={`/sounds/${categorySlug}`} className="hover:text-white transition-colors shrink-0">
                     {category}
                 </Link>
-                <span>/</span>
+                <span className="shrink-0">/</span>
                 <span className="text-white/70 truncate">{sound.title as string}</span>
             </nav>
 
-            <div className="grid lg:grid-cols-3 gap-8">
+            <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
                 {/* ── Main column ── */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                     <div>
-                        <h1 className="text-3xl font-bold mb-2">{sound.title as string} Sound Effect</h1>
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-white/40">
+                        <h1 className="text-2xl sm:text-3xl font-bold mb-2">{sound.title as string} Sound Effect</h1>
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-white/40">
                             <span>{sound.duration as string}</span>
                             <Link href={`/sounds/${categorySlug}`} className="hover:text-orange-400 transition-colors">
                                 {category}
@@ -334,8 +334,8 @@ export default async function SoundPage({
                     )}
                 </div>
 
-                {/* ── Related sidebar ── */}
-                <aside className="space-y-3">
+                {/* ── Related sidebar — hidden on mobile when empty ── */}
+                <aside className={`space-y-3 ${related.length === 0 ? "hidden lg:block" : ""}`}>
                     <h2 className="font-semibold text-white/80">Related Sounds</h2>
                     {related.length > 0 ? (
                         related.map((r) => (
@@ -362,7 +362,7 @@ export default async function SoundPage({
             <AdBanner
                 type="multiplex"
                 slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_MULTIPLEX ?? ""}
-                className="mt-8 rounded-xl"
+                className="mt-4 sm:mt-8 rounded-xl"
             />
 
             {/* JSON-LD */}

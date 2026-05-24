@@ -21,15 +21,16 @@ interface AdBannerProps {
 const AD_CLIENT = process.env.NEXT_PUBLIC_GOOGLE_AD_CLIENT ?? "";
 
 /**
- * Minimum heights per ad type to prevent Cumulative Layout Shift (CLS).
- * CLS > 0.1 hurts both Core Web Vitals score and AdSense RPM.
- * These values match the typical smallest auto-size ad Google serves.
+ * Responsive min-height classes per ad type.
+ * Mobile: zero or tiny (fluid ads collapse to 0 when unfilled — no point
+ *         reserving 280px of empty space).
+ * Desktop (sm+): standard sizes that prevent CLS on wider viewports.
  */
-const MIN_HEIGHT: Record<AdType, number> = {
-    "display":    90,   // leaderboard / banner minimum
-    "in-article": 280,  // fluid in-article cards
-    "in-feed":    280,  // fluid in-feed cards
-    "multiplex":  300,  // relaxed multiplex grid
+const SIZE_CLASS: Record<AdType, string> = {
+    "display":    "min-h-[50px]  sm:min-h-[90px]",
+    "in-article": "min-h-0       sm:min-h-[250px]",
+    "in-feed":    "min-h-0       sm:min-h-[250px]",
+    "multiplex":  "min-h-0       sm:min-h-[280px]",
 };
 
 function getInsProps(type: AdType, slot: string, format: string, layoutKey?: string) {
@@ -85,15 +86,14 @@ export default function AdBanner({
 
     if (!AD_CLIENT || !slot) return null;
 
-    const insProps   = getInsProps(type, slot, format, layoutKey);
-    const minHeight  = MIN_HEIGHT[type];
+    const insProps  = getInsProps(type, slot, format, layoutKey);
+    const sizeClass = SIZE_CLASS[type];
 
     return (
         <div
             role="region"
             aria-label="Advertisement"
-            style={{ minHeight }}
-            className={`w-full overflow-hidden ${className}`}
+            className={`w-full overflow-hidden ${sizeClass} ${className}`}
         >
             <ins
                 className="adsbygoogle"

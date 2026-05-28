@@ -117,6 +117,18 @@ const LICENSE_MAP = {
     'https://creativecommons.org/licenses/by-nc-nd/4.0/':  null,
 };
 
+// ── Title content filter ───────────────────────────────────────────────────────
+const BLOCKED_TITLE_WORDS = [
+    'fuck', 'shit', 'bitch', 'cunt', 'nigger', 'nigga', 'faggot', 'pussy',
+    'asshole', 'bastard', 'motherfucker', 'cock', 'dick', 'whore', 'slut',
+    'porn', 'sex', 'rape', 'kill yourself', 'kys',
+];
+
+function isTitleClean(title) {
+    const lower = title.toLowerCase();
+    return !BLOCKED_TITLE_WORDS.some(w => lower.includes(w));
+}
+
 // License filter based on --license flag
 function wantLicense(licenseUrl) {
     const mapped = LICENSE_MAP[licenseUrl] ?? null;
@@ -270,6 +282,13 @@ async function main() {
             // ── Skip checks ──────────────────────────────────────────────────
             if (!wantLicense(sound.license)) {
                 console.log(`  ⏭  [${sound.id}] ${sound.name.slice(0, 50)} — license skipped (${sound.license})`);
+                skipped++;
+                continue;
+            }
+
+            const titleRaw = cleanTitle(sound.name);
+            if (!isTitleClean(titleRaw)) {
+                console.log(`  ⏭  [${sound.id}] ${titleRaw.slice(0, 50)} — title blocked`);
                 skipped++;
                 continue;
             }

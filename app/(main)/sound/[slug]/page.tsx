@@ -274,6 +274,7 @@ export default async function SoundPage({
                         slug={canonical}
                         title={s.title}
                         duration={s.duration}
+                        btnColor={s.btnColor}
                     />
 
                     {/* Ad: in-article — just below player */}

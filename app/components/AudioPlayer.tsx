@@ -2,12 +2,21 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { getR2Url } from "@/app/lib/r2/r2Url";
+import { cn } from "@/app/lib/utils";
+
+const HUE_MAP: Record<string, string> = {
+    '0': 'hue-rotate-0', '20': 'hue-rotate-[20deg]', '125': 'hue-rotate-[125deg]',
+    '145': 'hue-rotate-[145deg]', '195': 'hue-rotate-[195deg]', '225': 'hue-rotate-[225deg]',
+    '255': 'hue-rotate-[255deg]', '280': 'hue-rotate-[280deg]', '305': 'hue-rotate-[305deg]',
+    '335': 'hue-rotate-[335deg]',
+};
 
 interface AudioPlayerProps {
     s_id: string;
     slug: string;
     title: string;
     duration: string;
+    btnColor?: string;
 }
 
 function pad(n: number) {
@@ -25,7 +34,7 @@ function parseDuration(d: string): number {
     return (m || 0) * 60 + (s || 0);
 }
 
-export default function AudioPlayer({ s_id, slug, title, duration }: AudioPlayerProps) {
+export default function AudioPlayer({ s_id, slug, title, duration, btnColor = '0' }: AudioPlayerProps) {
     const [playing, setPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -34,6 +43,7 @@ export default function AudioPlayer({ s_id, slug, title, duration }: AudioPlayer
     const didTrackPlay = useRef(false);
     const audioUrl = getR2Url(`store/${s_id}.mp3`) ?? '';
     const totalTime = parseDuration(duration);
+    const hue = HUE_MAP[btnColor] ?? 'hue-rotate-0';
 
     useEffect(() => {
         return () => {
@@ -114,23 +124,13 @@ export default function AudioPlayer({ s_id, slug, title, duration }: AudioPlayer
                 <button
                     onClick={togglePlay}
                     aria-label={playing ? "Pause" : "Play"}
-                    disabled={loading}
-                    className="shrink-0 w-12 h-12 rounded-full bg-orange-500 hover:bg-orange-400 disabled:opacity-50 flex items-center justify-center transition-colors"
-                >
-                    {loading ? (
-                        <svg className="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                        </svg>
-                    ) : playing ? (
-                        <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
-                        </svg>
-                    ) : (
-                        <svg className="h-5 w-5 text-white ml-0.5" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M8 5v14l11-7L8 5z" />
-                        </svg>
+                    className={cn(
+                        "sound-btn shrink-0 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-lg",
+                        hue,
+                        playing && "btn-animation",
+                        loading && "opacity-50 cursor-wait"
                     )}
-                </button>
+                />
 
                 <div className="flex-1 min-w-0 space-y-1.5">
                     <p className="text-sm font-semibold truncate">{title}</p>

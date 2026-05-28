@@ -8,6 +8,8 @@ import SoundCard from "@/app/components/SoundCard";
 import ReportButton from "@/app/components/ReportButton";
 import AdBanner from "@/app/components/AdBanner";
 import ShareButton from "@/app/components/ShareButton";
+import Comments from "@/app/components/Comments";
+import AddToSoundboard from "@/app/components/AddToSoundboard";
 import { parseSoundParam } from "@/app/lib/utils";
 
 // 5 min revalidation — keeps content fresh without ISR write spikes
@@ -313,6 +315,7 @@ export default async function SoundPage({
                     <div className="flex items-center gap-3 flex-wrap">
                         <LikeButton urlParam={canonical} likes={likes} />
                         <ShareButton title={sound.title as string} url={canonicalUrl} />
+                        <AddToSoundboard s_id={s.s_id} />
                         <ReportButton slug={canonical} />
                     </div>
 
@@ -333,6 +336,11 @@ export default async function SoundPage({
                             </div>
                         </div>
                     )}
+
+                    {/* Comments */}
+                    <div className="rounded-2xl border border-white/8 bg-[#141414] p-5">
+                        <Comments s_id={s.s_id} />
+                    </div>
                 </div>
 
                 {/* ── Related sidebar — hidden on mobile when empty ── */}

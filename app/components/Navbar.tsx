@@ -9,7 +9,7 @@ import {
     Search, Upload, LogOut, User, Shield,
     Flame, Clock, Music2, Gamepad2, Laugh,
     ChevronDown, X, Menu, BookOpen,
-    Home, Zap, ArrowRight, History, TrendingUp,
+    Home, Zap, ArrowRight, History, TrendingUp, LayoutGrid,
 } from "lucide-react";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -640,6 +640,9 @@ export default function Navbar() {
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem asChild>
                                         <Link href={`/profile/${session.user.uid}`}><User className="h-4 w-4" /> My Profile</Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href="/my/soundboards"><LayoutGrid className="h-4 w-4" /> My Soundboards</Link>
                                     </DropdownMenuItem>
                                     {(session.user.role === "admin" || session.user.role === "moderator") && (
                                         <>

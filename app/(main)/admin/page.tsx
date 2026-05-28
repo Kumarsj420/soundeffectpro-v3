@@ -1,5 +1,3 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import Report from "@/app/lib/models/Report";
@@ -15,11 +13,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
-    const session = await auth();
-    if (!session || !['admin', 'moderator'].includes(session.user.role)) {
-        redirect("/");
-    }
-
+    // Auth is handled by admin/layout.tsx — no duplicate check needed here
     await connectDB();
 
     const [pendingSounds, unreadReports, unreadMessages] = await Promise.all([
@@ -64,7 +58,7 @@ export default async function AdminPage() {
     }));
 
     return (
-        <div className="mx-auto max-w-7xl px-4 py-8">
+        <>
             <div className="mb-8 flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold">Moderation Queue</h1>
@@ -95,6 +89,6 @@ export default async function AdminPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </>
     );
 }

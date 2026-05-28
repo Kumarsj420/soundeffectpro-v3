@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
-import { CATEGORIES } from "@/app/lib/constants";
-import { LICENSE_VALUES } from "@/app/lib/models/File";
+import { CATEGORIES, LICENSE_VALUES } from "@/app/lib/constants";
 import { cn } from "@/app/lib/utils";
 import {
     Search, ChevronLeft, ChevronRight, Eye, EyeOff,

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useId } from "react";
-import { CATEGORIES } from "@/app/lib/constants";
-import { LICENSE_VALUES } from "@/app/lib/models/File";
+import { CATEGORIES, LICENSE_VALUES } from "@/app/lib/constants";
 import { cn } from "@/app/lib/utils";
 import { Upload, X, CheckCircle2, AlertCircle, Loader2, Music2 } from "lucide-react";
 
@@ -229,7 +228,7 @@ export default function AdminBulkUpload() {
 
             {/* ── Shared fields ── */}
             <div className="rounded-2xl border border-white/8 bg-[#111113] p-5 space-y-4">
-                <p className="text-sm font-semibold text-white/60 uppercase tracking-wide text-xs">
+                <p className="text-xs font-semibold text-white/60 uppercase tracking-wide">
                     Shared for all files in this batch
                 </p>
                 <div className="grid grid-cols-2 gap-4">

@@ -1,7 +1,9 @@
 import mongoose, { Schema, Model, Types, Document } from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 import { getWeekStart, getMonthStart, getHalfYearStart } from "../statsPeriod";
-import { CATEGORIES, type Category } from "../constants";
+import { CATEGORIES, LICENSE_VALUES, type Category, type License } from "../constants";
+
+export { LICENSE_VALUES, type License };
 
 export interface IFileUser {
     uid: string;
@@ -24,9 +26,6 @@ export interface IStats {
     monthly: IPeriodStat;
     halfYearly: IPeriodStat;
 }
-
-export const LICENSE_VALUES = ['unknown', 'copyrighted', 'royalty-free', 'creative-commons', 'public-domain'] as const;
-export type License = typeof LICENSE_VALUES[number];
 
 export interface IFile extends Document {
     _id: Types.ObjectId;

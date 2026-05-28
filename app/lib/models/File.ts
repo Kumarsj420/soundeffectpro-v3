@@ -25,6 +25,9 @@ export interface IStats {
     halfYearly: IPeriodStat;
 }
 
+export const LICENSE_VALUES = ['unknown', 'copyrighted', 'royalty-free', 'creative-commons', 'public-domain'] as const;
+export type License = typeof LICENSE_VALUES[number];
+
 export interface IFile extends Document {
     _id: Types.ObjectId;
     s_id: string;
@@ -37,6 +40,8 @@ export interface IFile extends Document {
     btnColor: '0' | '20' | '125' | '145' | '195' | '225' | '255' | '280' | '305' | '335';
     user: IFileUser;
     stats: IStats;
+    license: License;
+    trendScore: number;
     visibility: boolean;
     moderationStatus: 'pending' | 'approved' | 'rejected';
     createdAt: Date;
@@ -111,6 +116,17 @@ const FileSchema = new Schema<IFile>({
     },
     user: { type: FileUserSchema, required: true },
     stats: { type: StatsSchema, default: () => ({}) },
+    license: {
+        type: String,
+        enum: LICENSE_VALUES,
+        default: 'unknown',
+        index: true,
+    },
+    trendScore: {
+        type: Number,
+        default: 0,
+        index: true,
+    },
     visibility: { type: Boolean, default: false },
     moderationStatus: {
         type: String,
@@ -138,6 +154,12 @@ FileSchema.index({ 'stats.weekly.periodStart': 1, 'stats.weekly.downloads': -1 }
 FileSchema.index({ 'stats.monthly.periodStart': 1, 'stats.monthly.views': -1 });
 FileSchema.index({ 'stats.monthly.periodStart': 1, 'stats.monthly.downloads': -1 });
 FileSchema.index({ 'stats.halfYearly.periodStart': 1, 'stats.halfYearly.views': -1 });
+
+// trendScore indexes — used by /trending, category trending, etc.
+FileSchema.index({ trendScore: -1 });
+FileSchema.index({ visibility: 1, trendScore: -1 });
+FileSchema.index({ visibility: 1, category: 1, trendScore: -1 });
+FileSchema.index({ visibility: 1, license: 1, trendScore: -1 });
 
 const File: Model<IFile> = mongoose.models.File || mongoose.model<IFile>('File', FileSchema);
 export default File;

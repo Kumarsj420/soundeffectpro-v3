@@ -1,7 +1,7 @@
 import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import { parseSoundParam } from "@/app/lib/utils";
-import { getWeekStart, getMonthStart, getHalfYearStart } from "@/app/lib/statsPeriod";
+import { buildDownloadPipeline } from "@/app/lib/statsPeriod";
 
 export async function POST(
     _req: Request,
@@ -14,21 +14,11 @@ export async function POST(
 
         await connectDB();
 
+        // buildDownloadPipeline() uses $cond to auto-reset stale period buckets
+        // before incrementing downloads — same fix as play/route.ts.
         await File.findOneAndUpdate(
             { s_id, visibility: true },
-            {
-                $inc: {
-                    'stats.downloads': 1,
-                    'stats.weekly.downloads': 1,
-                    'stats.monthly.downloads': 1,
-                    'stats.halfYearly.downloads': 1,
-                },
-                $setOnInsert: {
-                    'stats.weekly.periodStart': getWeekStart(),
-                    'stats.monthly.periodStart': getMonthStart(),
-                    'stats.halfYearly.periodStart': getHalfYearStart(),
-                },
-            }
+            buildDownloadPipeline()
         );
 
         return Response.json({ ok: true });

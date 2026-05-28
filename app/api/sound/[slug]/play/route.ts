@@ -1,7 +1,7 @@
 import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import { parseSoundParam } from "@/app/lib/utils";
-import { getWeekStart, getMonthStart, getHalfYearStart } from "@/app/lib/statsPeriod";
+import { buildViewPipeline } from "@/app/lib/statsPeriod";
 
 export async function POST(
     _req: Request,
@@ -14,21 +14,12 @@ export async function POST(
 
         await connectDB();
 
+        // buildViewPipeline() uses $cond to auto-reset stale weekly/monthly/
+        // halfYearly buckets before incrementing — fixing the old $setOnInsert bug
+        // where period counters never reset and accumulated as all-time totals.
         await File.findOneAndUpdate(
             { s_id, visibility: true },
-            {
-                $inc: {
-                    'stats.views': 1,
-                    'stats.weekly.views': 1,
-                    'stats.monthly.views': 1,
-                    'stats.halfYearly.views': 1,
-                },
-                $setOnInsert: {
-                    'stats.weekly.periodStart': getWeekStart(),
-                    'stats.monthly.periodStart': getMonthStart(),
-                    'stats.halfYearly.periodStart': getHalfYearStart(),
-                },
-            }
+            buildViewPipeline()
         );
 
         return Response.json({ ok: true });

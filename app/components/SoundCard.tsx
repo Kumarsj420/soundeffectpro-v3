@@ -18,24 +18,16 @@ interface SoundCardProps {
     stats: { views: number; downloads: number; likes: number };
 }
 
-const HUE_MAP: Record<string, string> = {
-    '0': 'hue-rotate-0', '20': 'hue-rotate-[20deg]', '125': 'hue-rotate-[125deg]',
-    '145': 'hue-rotate-[145deg]', '195': 'hue-rotate-[195deg]', '225': 'hue-rotate-[225deg]',
-    '255': 'hue-rotate-[255deg]', '280': 'hue-rotate-[280deg]', '305': 'hue-rotate-[305deg]',
-    '335': 'hue-rotate-[335deg]',
-};
-
 function fmt(n: number) {
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
     if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
     return String(n);
 }
 
-export default function SoundCard({ s_id, slug, title, duration, tags, category, btnColor, stats }: SoundCardProps) {
+export default function SoundCard({ s_id, slug, title, duration, tags, category, stats }: SoundCardProps) {
     const [playing, setPlaying]   = useState(false);
     const [loading, setLoading]   = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const hue      = HUE_MAP[btnColor] ?? 'hue-rotate-0';
 
     async function togglePlay() {
         if (loading) return;
@@ -77,19 +69,36 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
                 ? "border-orange-500/40 shadow-lg shadow-orange-500/10"
                 : "border-white/7 hover:border-white/14"
         )}>
-            {/* Top row: sprite btn + title */}
-            <div className="flex items-center gap-3 mini-btn">
+            {/* Top row: play btn + title */}
+            <div className="flex items-center gap-3">
                 <button
                     onClick={togglePlay}
                     aria-label={playing ? `Stop ${title}` : `Play ${title}`}
                     aria-pressed={playing}
+                    disabled={loading}
                     className={cn(
-                        "sound-btn shrink-0 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-lg",
-                        hue,
-                        playing && "btn-animation",
-                        loading && "opacity-50 cursor-wait"
+                        "shrink-0 w-11 h-11 rounded-full bg-orange-500 hover:bg-orange-400 disabled:opacity-50",
+                        "flex items-center justify-center transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#111113]",
+                        playing && "shadow-lg shadow-orange-500/40"
                     )}
-                />
+                >
+                    {loading ? (
+                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                    ) : playing ? (
+                        <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                            <rect x="6" y="4" width="4" height="16" rx="1" />
+                            <rect x="14" y="4" width="4" height="16" rx="1" />
+                        </svg>
+                    ) : (
+                        <svg className="h-4 w-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                        </svg>
+                    )}
+                </button>
 
                 <div className="flex-1 min-w-0 space-y-1">
                     <Link

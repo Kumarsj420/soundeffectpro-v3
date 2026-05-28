@@ -276,6 +276,12 @@ export default async function SoundPage({
                         duration={s.duration}
                     />
 
+                    {/* Ad: in-article — just below player */}
+                    <AdBanner
+                        type="in-article"
+                        slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_IN_ARTICLE ?? ""}
+                    />
+
                     {/* Description */}
                     {sound.description && (
                         <div className="rounded-2xl border border-white/8 bg-[#141414] p-5">
@@ -308,12 +314,6 @@ export default async function SoundPage({
                         <ShareButton title={sound.title as string} url={canonicalUrl} />
                         <ReportButton slug={canonical} />
                     </div>
-
-                    {/* Ad: in-article */}
-                    <AdBanner
-                        type="in-article"
-                        slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_IN_ARTICLE ?? ""}
-                    />
 
                     {/* Creator */}
                     {(sound.user as { name?: string })?.name && (

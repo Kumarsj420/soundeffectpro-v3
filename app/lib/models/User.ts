@@ -1,6 +1,8 @@
 import mongoose, { Schema, Model, Document } from "mongoose";
 import { v4 as uuidv4 } from "uuid";
 
+export type Plan = 'free' | 'pro' | 'api';
+
 export interface IUser extends Document {
     uid: string;
     name?: string;
@@ -8,6 +10,10 @@ export interface IUser extends Document {
     image?: string | null;
     provider?: string;
     role: 'user' | 'admin' | 'moderator';
+    plan: Plan;
+    stripeCustomerId:     string | null;
+    stripeSubscriptionId: string | null;
+    planExpiresAt:        Date | null;
     favCount: number;
     uploadCount: number;
     isProfileCompleted: boolean;
@@ -54,6 +60,15 @@ const UserSchema = new Schema<IUser>({
         enum: ['user', 'admin', 'moderator'],
         default: 'user',
     },
+    plan: {
+        type: String,
+        enum: ['free', 'pro', 'api'],
+        default: 'free',
+        index: true,
+    },
+    stripeCustomerId:     { type: String, default: null },
+    stripeSubscriptionId: { type: String, default: null },
+    planExpiresAt:        { type: Date,   default: null },
     favCount: {
         type: Number,
         default: 0,

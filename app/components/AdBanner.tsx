@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 
 declare global {
     interface Window { adsbygoogle: unknown[]; }
@@ -72,19 +73,23 @@ export default function AdBanner({
     format    = "auto",
     layoutKey,
 }: AdBannerProps) {
+    const { data: session } = useSession();
     const pushed = useRef(false);
 
+    // Pro and API users see no ads
+    const isPro = session?.user.plan === "pro" || session?.user.plan === "api";
+
     useEffect(() => {
-        if (pushed.current || !AD_CLIENT || !slot) return;
+        if (pushed.current || !AD_CLIENT || !slot || isPro) return;
         try {
             pushed.current = true;
             (window.adsbygoogle = window.adsbygoogle || []).push({});
         } catch {
             // AdSense script not yet loaded — will initialise when it does
         }
-    }, [slot]);
+    }, [slot, isPro]);
 
-    if (!AD_CLIENT || !slot) return null;
+    if (!AD_CLIENT || !slot || isPro) return null;
 
     const insProps  = getInsProps(type, slot, format, layoutKey);
     const sizeClass = SIZE_CLASS[type];

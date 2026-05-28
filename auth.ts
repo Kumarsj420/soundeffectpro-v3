@@ -57,12 +57,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                     await connectDB();
                     const dbUser = await User.findOne(
                         { email: token.email },
-                        { uid: 1, role: 1 }
+                        { uid: 1, role: 1, plan: 1, planExpiresAt: 1 }
                     ).lean();
 
                     if (dbUser) {
-                        token.uid = dbUser.uid;
+                        token.uid  = dbUser.uid;
                         token.role = dbUser.role;
+                        // Expire plan if subscription lapsed
+                        const expired = dbUser.planExpiresAt && dbUser.planExpiresAt < new Date();
+                        token.plan = expired ? "free" : (dbUser.plan ?? "free");
                     }
                 } catch {
                     // keep existing token data on DB error
@@ -73,8 +76,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         async session({ session, token }) {
             if (token) {
-                session.user.uid = token.uid as string;
+                session.user.uid  = token.uid  as string;
                 session.user.role = (token.role as string) ?? "user";
+                session.user.plan = (token.plan as string) ?? "free";
             }
             return session;
         },

@@ -277,6 +277,7 @@ export default async function SoundPage({
                         title={s.title}
                         duration={s.duration}
                         btnColor={s.btnColor}
+                        license={sound.license as string}
                     />
 
                     {/* Ad: in-article — just below player */}

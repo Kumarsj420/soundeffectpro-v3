@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
+import { syncSound, removeSound } from "@/app/lib/meilisearch";
 
 const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "");
 
@@ -50,15 +51,19 @@ export async function POST(req: Request) {
                 { new: true }
             ).select("slug s_id").lean();
 
-            // Fire-and-forget IndexNow ping so crawlers pick it up within minutes
             if (sound?.slug && sound?.s_id) {
                 pingIndexNow(`${BASE}/sound/${sound.slug}-${sound.s_id}`);
+                // Sync approved sound to Meilisearch
+                syncSound({ s_id: sound.s_id, slug: sound.slug, title: (sound as { title?: string }).title ?? "", visibility: true }).catch(() => null);
             }
         } else {
             await File.findByIdAndUpdate(id, {
                 moderationStatus: "rejected",
                 visibility: false,
             });
+            // Remove rejected sound from Meilisearch index
+            const rejected = await File.findById(id).select("s_id").lean();
+            if (rejected?.s_id) removeSound(rejected.s_id).catch(() => null);
         }
 
         return Response.json({ ok: true });

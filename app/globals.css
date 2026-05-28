@@ -48,7 +48,7 @@ body {
 .sound-btn:hover  { filter: brightness(1.15); }
 
 /* mini size for cards */
-.mini-btn .sound-btn { --scale-factor: 0.60; }
+.mini-btn .sound-btn { --scale-factor: 0.7; }
 
 /* playing animation */
 .btn-animation { animation: btn-anime 1.5s infinite linear; }

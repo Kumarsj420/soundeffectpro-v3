@@ -79,7 +79,8 @@ async function getData() {
 
     try {
         const [trending, weekly, latest] = await Promise.all([
-            File.find(base).sort({ 'stats.views': -1 }).limit(12)
+            // trendScore is recomputed nightly — recency-weighted, not just all-time views
+            File.find(base).sort({ trendScore: -1 }).limit(12)
                 .select('s_id slug title duration tags category btnColor stats').lean(),
 
             File.find({ ...base, 'stats.weekly.periodStart': { $gte: getWeekStart() } })

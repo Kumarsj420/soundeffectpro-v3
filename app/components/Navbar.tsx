@@ -65,18 +65,32 @@ function getRecent(): string[] {
 function MobileSearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
     const router   = useRouter();
     const inputRef = useRef<HTMLInputElement>(null);
-    const [q, setQ]           = useState("");
-    const [recent, setRecent] = useState<string[]>([]);
+    const [q, setQ]               = useState("");
+    const [recent, setRecent]     = useState<string[]>([]);
+    const [result, setResult]     = useState<SuggestResult | null>(null);
+    const debounceRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Load recent searches when overlay opens
     useEffect(() => {
         if (open) {
             setQ("");
+            setResult(null);
             setRecent(getRecent());
-            // Small delay so the animation starts before focusing
             setTimeout(() => inputRef.current?.focus(), 80);
         }
     }, [open]);
+
+    // Debounced live suggestions
+    useEffect(() => {
+        const trimmed = q.trim();
+        if (trimmed.length < 2) { setResult(null); return; }
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(async () => {
+            const res = await fetch(`/api/search/suggest?q=${encodeURIComponent(trimmed)}`).catch(() => null);
+            if (res?.ok) setResult(await res.json());
+        }, 220);
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, [q]);
 
     // Close on ESC
     useEffect(() => {
@@ -109,6 +123,9 @@ function MobileSearchOverlay({ open, onClose }: { open: boolean; onClose: () => 
         localStorage.removeItem(RECENT_KEY);
         setRecent([]);
     }
+
+    const hasLiveResults = q.trim().length >= 2 && result !== null &&
+        ((result.suggestions?.length ?? 0) > 0 || (result.sounds?.length ?? 0) > 0);
 
     return (
         <>
@@ -145,7 +162,7 @@ function MobileSearchOverlay({ open, onClose }: { open: boolean; onClose: () => 
                     {q ? (
                         <button
                             type="button"
-                            onClick={() => setQ("")}
+                            onClick={() => { setQ(""); setResult(null); }}
                             className="shrink-0 p-1.5 rounded-full hover:bg-white/8 text-white/50 hover:text-white transition-colors"
                         >
                             <X className="h-4 w-4" />
@@ -164,7 +181,7 @@ function MobileSearchOverlay({ open, onClose }: { open: boolean; onClose: () => 
                 {/* Suggestions body */}
                 <div className="max-h-[70vh] overflow-y-auto overscroll-contain">
 
-                    {/* Search button when typing */}
+                    {/* "Search for X" row — always shown when typing */}
                     {q.trim() && (
                         <button
                             onClick={() => navigate(q)}
@@ -176,102 +193,270 @@ function MobileSearchOverlay({ open, onClose }: { open: boolean; onClose: () => 
                         </button>
                     )}
 
-                    {/* Recent searches */}
-                    {!q && recent.length > 0 && (
-                        <div className="px-4 pt-4 pb-2">
-                            <div className="flex items-center justify-between mb-2">
-                                <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Recent</p>
-                                <button
-                                    onClick={clearRecent}
-                                    className="text-xs text-white/30 hover:text-orange-400 transition-colors"
-                                >
-                                    Clear
-                                </button>
-                            </div>
-                            <ul className="space-y-0.5">
-                                {recent.map((term) => (
-                                    <li key={term}>
-                                        <button
-                                            onClick={() => navigate(term)}
-                                            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/6 transition-colors text-left"
-                                        >
-                                            <History className="h-4 w-4 text-white/30 shrink-0" />
-                                            <span className="flex-1 truncate">{term}</span>
-                                            <ArrowRight className="h-3.5 w-3.5 text-white/20 shrink-0" />
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                    {/* ── Live results when query ≥ 2 chars ── */}
+                    {hasLiveResults && (
+                        <>
+                            {/* Popular suggestion terms */}
+                            {(result!.suggestions?.length ?? 0) > 0 && (
+                                <div className="px-4 pt-3 pb-1">
+                                    <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1.5">Suggestions</p>
+                                    <ul className="space-y-0.5">
+                                        {result!.suggestions.map((term) => (
+                                            <li key={term}>
+                                                <button
+                                                    onClick={() => navigate(term)}
+                                                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-white/70 hover:text-white hover:bg-white/6 transition-colors text-left"
+                                                >
+                                                    <TrendingUp className="h-4 w-4 text-orange-500/60 shrink-0" />
+                                                    <span className="flex-1 truncate">{term}</span>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* Matching sounds */}
+                            {(result!.sounds?.length ?? 0) > 0 && (
+                                <div className="px-4 pt-3 pb-3">
+                                    <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-1.5">Sounds</p>
+                                    <ul className="space-y-0.5">
+                                        {result!.sounds.map((s) => (
+                                            <li key={s.s_id}>
+                                                <button
+                                                    onClick={() => { onClose(); router.push(`/sound/${s.slug}-${s.s_id}`); }}
+                                                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-white/6 transition-colors text-left"
+                                                >
+                                                    <div className="h-8 w-8 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
+                                                        <svg className="h-3.5 w-3.5 text-orange-400 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm text-white truncate">{s.title}</p>
+                                                        <p className="text-xs text-white/35">{s.category} · {s.duration}</p>
+                                                    </div>
+                                                    <ArrowRight className="h-3.5 w-3.5 text-white/20 shrink-0" />
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </>
                     )}
 
-                    {/* Popular tags */}
-                    <div className="px-4 pt-4 pb-6">
-                        <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
-                            {q ? "Popular" : "Trending Searches"}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {POPULAR_TAGS
-                                .filter(tag => !q || tag.includes(q.toLowerCase()))
-                                .map((tag) => (
-                                    <button
-                                        key={tag}
-                                        onClick={() => navigate(tag)}
-                                        className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 hover:border-orange-500/40 hover:bg-orange-500/10 hover:text-orange-400 px-3 py-1.5 text-xs text-white/60 transition-all"
-                                    >
-                                        <TrendingUp className="h-3 w-3" />
-                                        {tag}
-                                    </button>
-                                ))}
-                        </div>
-                    </div>
+                    {/* ── Static sections shown when no query (or query < 2 chars) ── */}
+                    {!hasLiveResults && (
+                        <>
+                            {/* Recent searches */}
+                            {!q && recent.length > 0 && (
+                                <div className="px-4 pt-4 pb-2">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Recent</p>
+                                        <button
+                                            onClick={clearRecent}
+                                            className="text-xs text-white/30 hover:text-orange-400 transition-colors"
+                                        >
+                                            Clear
+                                        </button>
+                                    </div>
+                                    <ul className="space-y-0.5">
+                                        {recent.map((term) => (
+                                            <li key={term}>
+                                                <button
+                                                    onClick={() => navigate(term)}
+                                                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/6 transition-colors text-left"
+                                                >
+                                                    <History className="h-4 w-4 text-white/30 shrink-0" />
+                                                    <span className="flex-1 truncate">{term}</span>
+                                                    <ArrowRight className="h-3.5 w-3.5 text-white/20 shrink-0" />
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* Popular tags */}
+                            <div className="px-4 pt-4 pb-6">
+                                <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
+                                    Trending Searches
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                    {POPULAR_TAGS.map((tag) => (
+                                        <button
+                                            key={tag}
+                                            onClick={() => navigate(tag)}
+                                            className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 hover:border-orange-500/40 hover:bg-orange-500/10 hover:text-orange-400 px-3 py-1.5 text-xs text-white/60 transition-all"
+                                        >
+                                            <TrendingUp className="h-3 w-3" />
+                                            {tag}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </>
     );
 }
 
-// ── Desktop search bar ───────────────────────────────────────────────────────
+// ── Types for suggest API ─────────────────────────────────────────────────────
+interface SuggestSound {
+    s_id: string; slug: string; title: string; duration: string; category: string;
+}
+interface SuggestResult {
+    sounds: SuggestSound[];
+    suggestions: string[];
+}
+
+// ── Desktop search bar with live dropdown ─────────────────────────────────────
 function SearchBar() {
-    const router  = useRouter();
-    const [q, setQ] = useState("");
+    const router      = useRouter();
+    const [q, setQ]           = useState("");
     const [focused, setFocused] = useState(false);
+    const [result, setResult]   = useState<SuggestResult | null>(null);
+    const [activeIdx, setActiveIdx] = useState(-1);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const showDropdown = focused && q.trim().length >= 2 && result !== null;
+    const allItems: { type: "suggestion" | "sound"; value: string; sound?: SuggestSound }[] = [
+        ...(result?.suggestions ?? []).map(s => ({ type: "suggestion" as const, value: s })),
+        ...(result?.sounds ?? []).map(s => ({ type: "sound" as const, value: s.title, sound: s })),
+    ];
+
+    // Debounced fetch
+    useEffect(() => {
+        const trimmed = q.trim();
+        if (trimmed.length < 2) { setResult(null); setActiveIdx(-1); return; }
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(async () => {
+            const res = await fetch(`/api/search/suggest?q=${encodeURIComponent(trimmed)}`);
+            if (res.ok) { setResult(await res.json()); setActiveIdx(-1); }
+        }, 220);
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    }, [q]);
+
+    function navigate(query: string) {
+        const trimmed = query.trim();
+        if (!trimmed) return;
+        setFocused(false);
+        setResult(null);
+        router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+    }
 
     function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
         e.preventDefault();
-        const trimmed = q.trim();
-        if (trimmed) router.push(`/search?q=${encodeURIComponent(trimmed)}`);
+        if (activeIdx >= 0 && allItems[activeIdx]) {
+            const item = allItems[activeIdx];
+            if (item.type === "sound" && item.sound)
+                router.push(`/sound/${item.sound.slug}-${item.sound.s_id}`);
+            else navigate(item.value);
+        } else {
+            navigate(q);
+        }
+    }
+
+    function handleKeyDown(e: React.KeyboardEvent) {
+        if (!showDropdown) return;
+        if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, allItems.length - 1)); }
+        if (e.key === "ArrowUp")   { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, -1)); }
+        if (e.key === "Escape")    { setFocused(false); setResult(null); }
     }
 
     return (
-        <form onSubmit={handleSubmit} className="flex-1 min-w-0 max-w-xl">
-            <div className={cn(
-                "relative flex items-center rounded-full border transition-all duration-200",
-                focused
-                    ? "border-orange-500/50 bg-white/8 shadow-lg shadow-orange-500/10"
-                    : "border-white/8 bg-white/5 hover:bg-white/7 hover:border-white/12"
-            )}>
-                <Search className="absolute left-4 h-4 w-4 text-[#71717a] pointer-events-none shrink-0" />
-                <input
-                    type="search"
-                    value={q}
-                    onChange={e => setQ(e.target.value)}
-                    onFocus={() => setFocused(true)}
-                    onBlur={() => setFocused(false)}
-                    placeholder="Search sounds, memes, games..."
-                    aria-label="Search sounds"
-                    className="w-full bg-transparent pl-11 pr-3 py-2.5 text-sm text-white placeholder-[#71717a] outline-none"
-                />
-                {q && (
-                    <button
-                        type="submit"
-                        className="mr-1.5 shrink-0 rounded-full bg-orange-500 hover:bg-orange-400 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors"
-                    >
-                        Go
-                    </button>
-                )}
-            </div>
-        </form>
+        <div ref={containerRef} className="relative flex-1 min-w-0 max-w-xl">
+            <form onSubmit={handleSubmit}>
+                <div className={cn(
+                    "relative flex items-center rounded-full border transition-all duration-200",
+                    focused
+                        ? "border-orange-500/50 bg-white/8 shadow-lg shadow-orange-500/10"
+                        : "border-white/8 bg-white/5 hover:bg-white/7 hover:border-white/12"
+                )}>
+                    <Search className="absolute left-4 h-4 w-4 text-[#71717a] pointer-events-none shrink-0" />
+                    <input
+                        type="search"
+                        value={q}
+                        onChange={e => setQ(e.target.value)}
+                        onFocus={() => setFocused(true)}
+                        onBlur={() => setTimeout(() => setFocused(false), 150)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Search sounds, memes, games..."
+                        aria-label="Search sounds"
+                        aria-autocomplete="list"
+                        aria-expanded={showDropdown}
+                        className="w-full bg-transparent pl-11 pr-3 py-2.5 text-sm text-white placeholder-[#71717a] outline-none"
+                    />
+                    {q && (
+                        <button type="submit"
+                            className="mr-1.5 shrink-0 rounded-full bg-orange-500 hover:bg-orange-400 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors">
+                            Go
+                        </button>
+                    )}
+                </div>
+            </form>
+
+            {/* ── Dropdown ── */}
+            {showDropdown && (
+                <div className="absolute top-full mt-2 left-0 right-0 z-50 rounded-2xl border border-white/10 bg-[#111113] shadow-2xl shadow-black/40 overflow-hidden">
+                    {/* Popular suggestions */}
+                    {result!.suggestions.length > 0 && (
+                        <div className="py-1 border-b border-white/6">
+                            {result!.suggestions.map((term, i) => (
+                                <button key={term}
+                                    onMouseDown={() => navigate(term)}
+                                    className={cn(
+                                        "flex w-full items-center gap-3 px-4 py-2.5 text-sm text-left transition-colors",
+                                        activeIdx === i ? "bg-orange-500/10 text-orange-400" : "text-white/60 hover:bg-white/5 hover:text-white"
+                                    )}>
+                                    <TrendingUp className="h-3.5 w-3.5 text-orange-500/60 shrink-0" />
+                                    {term}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Sound results */}
+                    {result!.sounds.length > 0 && (
+                        <div className="py-1">
+                            <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-white/25">Sounds</p>
+                            {result!.sounds.map((s, i) => {
+                                const idx = result!.suggestions.length + i;
+                                return (
+                                    <button key={s.s_id}
+                                        onMouseDown={() => router.push(`/sound/${s.slug}-${s.s_id}`)}
+                                        className={cn(
+                                            "flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors",
+                                            activeIdx === idx ? "bg-orange-500/10" : "hover:bg-white/5"
+                                        )}>
+                                        <div className="h-7 w-7 rounded-full bg-orange-500/20 flex items-center justify-center shrink-0">
+                                            <svg className="h-3 w-3 text-orange-400 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm text-white truncate">{s.title}</p>
+                                            <p className="text-xs text-white/35">{s.category} · {s.duration}</p>
+                                        </div>
+                                        <ArrowRight className="h-3.5 w-3.5 text-white/20 shrink-0" />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* See all */}
+                    <div className="border-t border-white/6 px-4 py-2.5">
+                        <button onMouseDown={() => navigate(q)}
+                            className="flex w-full items-center gap-2 text-xs text-orange-400 hover:text-orange-300 transition-colors">
+                            <Search className="h-3.5 w-3.5" />
+                            See all results for <strong>"{q.trim()}"</strong>
+                            <ArrowRight className="h-3.5 w-3.5 ml-auto" />
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
 

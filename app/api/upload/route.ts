@@ -5,6 +5,7 @@ import User from "@/app/lib/models/User";
 import { uploadAudioToR2 } from "@/app/lib/r2/r2audioUpload";
 import { auth } from "@/auth";
 import { containsBannedWord } from "@/app/lib/bannedWords";
+import { syncSound } from "@/app/lib/meilisearch";
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_MIME = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/webm"];
@@ -117,6 +118,12 @@ export async function POST(req: Request) {
 
         // Increment user upload count
         await User.updateOne({ email: session.user.email }, { $inc: { uploadCount: 1 } });
+
+        // Sync to Meilisearch (fire-and-forget — don't block response)
+        syncSound({
+            s_id: newFile.s_id, slug: newFile.slug, title,
+            tags, category, duration, visibility: true,
+        }).catch(() => null);
 
         return Response.json({
             ok: true,

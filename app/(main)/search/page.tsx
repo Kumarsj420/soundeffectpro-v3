@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import NotFound from "@/app/lib/models/NotFound";
+import SearchQuery from "@/app/lib/models/SearchQuery";
 import SoundCard from "@/app/components/SoundCard";
 import Link from "next/link";
 import AdBanner from "@/app/components/AdBanner";
 import { containsBannedWord } from "@/app/lib/bannedWords";
+import { searchSounds } from "@/app/lib/meilisearch";
 
 export const revalidate = 60;
 
@@ -71,33 +73,61 @@ export default async function SearchPage({
     let total = 0;
 
     if (query && !isBannedQuery) {
-        const isRelevant = sort === 'relevant' || !['popular', 'newest'].includes(sort);
+        // ── Try Meilisearch first ─────────────────────────────────────────
+        const meili = await searchSounds(query, {
+            page: pageNum, limit, sort: sort as "relevant" | "popular" | "newest",
+        }).catch(() => null);
 
-        const [results, count] = await Promise.all([
-            File.find(
-                { $text: { $search: query }, visibility: true },
-                isRelevant ? { score: { $meta: 'textScore' } } : undefined
-            )
-                .sort(
-                    isRelevant
-                        ? { score: { $meta: 'textScore' } }
-                        : sort === 'popular'
-                        ? { 'stats.views': -1 }
-                        : { createdAt: -1 }
+        if (meili) {
+            // Meilisearch returned results — fetch full docs from MongoDB for stats/btnColor
+            const s_ids = (meili.hits as unknown as { s_id: string }[]).map(h => h.s_id);
+            const docs = s_ids.length
+                ? await File.find({ s_id: { $in: s_ids }, visibility: true })
+                    .select("s_id slug title duration tags category btnColor stats")
+                    .lean()
+                : [];
+
+            // Preserve Meilisearch ranking order
+            const docMap = new Map(docs.map(d => [d.s_id, d]));
+            sounds = s_ids.map((id: string) => docMap.get(id)).filter(Boolean) as unknown as Record<string, unknown>[];
+            total = (meili as unknown as { totalHits?: number; estimatedTotalHits?: number }).totalHits
+                 ?? (meili as unknown as { estimatedTotalHits?: number }).estimatedTotalHits
+                 ?? 0;
+        } else {
+            // ── MongoDB fallback ─────────────────────────────────────────
+            const isRelevant = sort === "relevant" || !["popular", "newest"].includes(sort);
+            const [results, count] = await Promise.all([
+                File.find(
+                    { $text: { $search: query }, visibility: true },
+                    isRelevant ? { score: { $meta: "textScore" } } : undefined
                 )
-                .skip(skip)
-                .limit(limit)
-                .select('s_id slug title duration tags category btnColor stats')
-                .lean(),
+                    .sort(
+                        isRelevant
+                            ? { score: { $meta: "textScore" } }
+                            : sort === "popular"
+                            ? { "stats.views": -1 }
+                            : { createdAt: -1 }
+                    )
+                    .skip(skip)
+                    .limit(limit)
+                    .select("s_id slug title duration tags category btnColor stats")
+                    .lean(),
+                File.countDocuments({ $text: { $search: query }, visibility: true }),
+            ]);
+            sounds = results as unknown as Record<string, unknown>[];
+            total = count;
+        }
 
-            File.countDocuments({ $text: { $search: query }, visibility: true }),
-        ]);
-
-        sounds = results as unknown as Record<string, unknown>[];
-        total = count;
+        // Track popular search terms (fire-and-forget)
+        if (query.length >= 2) {
+            SearchQuery.findOneAndUpdate(
+                { term: query.toLowerCase() },
+                { $inc: { count: 1 } },
+                { upsert: true }
+            ).catch(() => null);
+        }
 
         // Track zero-result searches for future curation
-        // (only for clean queries — never log banned terms)
         if (total === 0 && query.length >= 2) {
             NotFound.findOneAndUpdate(
                 { searchTerm: query.toLowerCase() },

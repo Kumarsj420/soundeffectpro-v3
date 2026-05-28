@@ -90,7 +90,7 @@ export default function AudioPlayer({ s_id, slug, title, duration, btnColor = '0
                 setLoading(false);
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [playing, audioUrl, slug]);
 
     function handleSeek(e: React.ChangeEvent<HTMLInputElement>) {
@@ -121,16 +121,18 @@ export default function AudioPlayer({ s_id, slug, title, duration, btnColor = '0
         <div className="rounded-2xl border border-white/10 bg-[#141414] p-5 space-y-4">
             {/* Play / Pause */}
             <div className="flex items-center gap-4">
-                <button
-                    onClick={togglePlay}
-                    aria-label={playing ? "Pause" : "Play"}
-                    className={cn(
-                        "sound-btn shrink-0 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-lg",
-                        hue,
-                        playing && "btn-animation",
-                        loading && "opacity-50 cursor-wait"
-                    )}
-                />
+                <div className="mini-btn">
+                    <button
+                        onClick={togglePlay}
+                        aria-label={playing ? "Pause" : "Play"}
+                        className={cn(
+                            "sound-btn shrink-0 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 rounded-lg",
+                            hue,
+                            playing && "btn-animation",
+                            loading && "opacity-50 cursor-wait"
+                        )}
+                    />
+                </div>
 
                 <div className="flex-1 min-w-0 space-y-1.5">
                     <p className="text-sm font-semibold truncate">{title}</p>

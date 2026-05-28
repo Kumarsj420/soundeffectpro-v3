@@ -18,6 +18,7 @@ import File from "@/app/lib/models/File";
 import { CATEGORIES } from "@/app/lib/constants";
 import { LICENSE_VALUES } from "@/app/lib/models/File";
 import { uploadAudioToR2 } from "@/app/lib/r2/r2audioUpload";
+import { syncSound } from "@/app/lib/meilisearch";
 
 const MAX_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
 const ALLOWED_MIME   = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/ogg", "audio/webm"];
@@ -109,6 +110,8 @@ export async function POST(req: Request) {
             await File.findByIdAndDelete(doc._id);
             return Response.json({ error: "R2 upload failed" }, { status: 500 });
         }
+
+        syncSound({ s_id, slug, title, tags, category, license, duration, visibility: true }).catch(() => null);
 
         return Response.json({ ok: true, s_id, slug, title });
 

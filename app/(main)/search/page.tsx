@@ -5,8 +5,13 @@ import NotFound from "@/app/lib/models/NotFound";
 import SoundCard from "@/app/components/SoundCard";
 import Link from "next/link";
 import AdBanner from "@/app/components/AdBanner";
+import { containsBannedWord } from "@/app/lib/bannedWords";
 
 export const revalidate = 60;
+
+// All /search pages are noindex — query strings create infinite URL variations
+// and can reflect user-typed content (including policy-violating terms).
+const NO_INDEX: Metadata["robots"] = { index: false, follow: true };
 
 export async function generateMetadata({
     searchParams,
@@ -14,11 +19,16 @@ export async function generateMetadata({
     searchParams: Promise<{ q?: string }>;
 }): Promise<Metadata> {
     const { q } = await searchParams;
-    if (!q) return { title: "Search Sounds" };
+
+    // If query is empty or contains banned content, return safe generic metadata
+    if (!q || containsBannedWord(q)) {
+        return { title: "Search Sounds", robots: NO_INDEX };
+    }
+
     return {
         title: `"${q}" Sound Effects`,
         description: `Search results for "${q}" — play and download free sound effects.`,
-        robots: { index: false, follow: true },
+        robots: NO_INDEX,
     };
 }
 
@@ -48,12 +58,19 @@ export default async function SearchPage({
     const limit = 20;
     const skip = (pageNum - 1) * limit;
 
+    // ── Banned word guard ─────────────────────────────────────────────────────
+    // If the query contains a slur or hate-speech term:
+    //  • Return zero results silently (no error, no echo of the word)
+    //  • Skip DB queries and NotFound tracking entirely
+    //  • The page is already noindex so it won't be indexed by search engines
+    const isBannedQuery = query.length > 0 && containsBannedWord(query);
+
     await connectDB();
 
     let sounds: Record<string, unknown>[] = [];
     let total = 0;
 
-    if (query) {
+    if (query && !isBannedQuery) {
         const isRelevant = sort === 'relevant' || !['popular', 'newest'].includes(sort);
 
         const [results, count] = await Promise.all([
@@ -80,6 +97,7 @@ export default async function SearchPage({
         total = count;
 
         // Track zero-result searches for future curation
+        // (only for clean queries — never log banned terms)
         if (total === 0 && query.length >= 2) {
             NotFound.findOneAndUpdate(
                 { searchTerm: query.toLowerCase() },
@@ -95,7 +113,7 @@ export default async function SearchPage({
         <div className="mx-auto max-w-7xl px-4 py-8">
             {/* Header */}
             <div className="mb-6">
-                {query ? (
+                {query && !isBannedQuery ? (
                     <>
                         <h1 className="text-2xl font-bold mb-1">
                             Results for <span className="text-orange-400">"{query}"</span>

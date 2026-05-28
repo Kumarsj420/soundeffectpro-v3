@@ -8,7 +8,16 @@ export default function robots(): MetadataRoute.Robots {
             {
                 userAgent: "*",
                 allow: "/",
-                disallow: ["/admin", "/api/", "/upload", "/login", "/page/"],
+                disallow: [
+                    "/admin",
+                    "/api/",
+                    "/upload",
+                    "/login",
+                    "/page/",
+                    // Search query URLs have no SEO value and can expose user-typed
+                    // content (including slurs) to crawlers — block all of them.
+                    "/search",
+                ],
             },
         ],
         sitemap: `${BASE}/sitemap.xml`,

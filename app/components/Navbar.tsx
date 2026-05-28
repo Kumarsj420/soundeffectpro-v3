@@ -433,45 +433,45 @@ export default function Navbar() {
                     <SearchBar />
 
                     <div className="flex items-center gap-2 shrink-0">
+                        {/* Upload — always visible; unauthenticated users land on /login */}
+                        <Link href={session ? "/upload" : "/login"}
+                            className="flex items-center gap-1.5 rounded-full bg-orange-500 hover:bg-orange-400 px-4 py-2 text-sm font-semibold text-white transition-all shadow-lg shadow-orange-500/25 hover:-translate-y-px">
+                            <Upload className="h-4 w-4" /> Upload
+                        </Link>
+
                         {session ? (
-                            <>
-                                <Link href="/upload"
-                                    className="flex items-center gap-1.5 rounded-full bg-orange-500 hover:bg-orange-400 px-4 py-2 text-sm font-semibold text-white transition-all shadow-lg shadow-orange-500/25 hover:-translate-y-px">
-                                    <Upload className="h-4 w-4" /> Upload
-                                </Link>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <button className="group flex items-center gap-1.5 rounded-full p-1.5 hover:bg-white/6 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" aria-label="User menu">
-                                            <Avatar src={session.user.image} name={session.user.name} />
-                                            <ChevronDown className="h-4 w-4 text-[#71717a] transition-transform group-data-[state=open]:rotate-180" />
-                                        </button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-52">
-                                        <DropdownMenuLabel className="normal-case text-xs font-normal text-[#a1a1aa] tracking-normal">
-                                            <p className="font-semibold text-white text-sm truncate">{session.user.name}</p>
-                                            <p className="text-[#71717a] text-xs truncate">{session.user.email}</p>
-                                        </DropdownMenuLabel>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem asChild>
-                                            <Link href={`/profile/${session.user.uid}`}><User className="h-4 w-4" /> My Profile</Link>
-                                        </DropdownMenuItem>
-                                        {(session.user.role === "admin" || session.user.role === "moderator") && (
-                                            <>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem asChild>
-                                                    <Link href="/admin" className="text-orange-400 focus:text-orange-300">
-                                                        <Shield className="h-4 w-4" /> Moderation
-                                                    </Link>
-                                                </DropdownMenuItem>
-                                            </>
-                                        )}
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })} className="text-red-400 focus:text-red-300">
-                                            <LogOut className="h-4 w-4" /> Sign out
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className="group flex items-center gap-1.5 rounded-full p-1.5 hover:bg-white/6 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500" aria-label="User menu">
+                                        <Avatar src={session.user.image} name={session.user.name} />
+                                        <ChevronDown className="h-4 w-4 text-[#71717a] transition-transform group-data-[state=open]:rotate-180" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52">
+                                    <DropdownMenuLabel className="normal-case text-xs font-normal text-[#a1a1aa] tracking-normal">
+                                        <p className="font-semibold text-white text-sm truncate">{session.user.name}</p>
+                                        <p className="text-[#71717a] text-xs truncate">{session.user.email}</p>
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem asChild>
+                                        <Link href={`/profile/${session.user.uid}`}><User className="h-4 w-4" /> My Profile</Link>
+                                    </DropdownMenuItem>
+                                    {(session.user.role === "admin" || session.user.role === "moderator") && (
+                                        <>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem asChild>
+                                                <Link href="/admin" className="text-orange-400 focus:text-orange-300">
+                                                    <Shield className="h-4 w-4" /> Moderation
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        </>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })} className="text-red-400 focus:text-red-300">
+                                        <LogOut className="h-4 w-4" /> Sign out
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         ) : (
                             <Link href="/login"
                                 className="rounded-full border border-white/15 hover:border-orange-500/50 hover:text-orange-400 px-4 py-2 text-sm font-medium transition-all hover:bg-orange-500/5">

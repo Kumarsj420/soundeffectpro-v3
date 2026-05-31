@@ -26,13 +26,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
             <AdminHeader />
-            <div className="flex-1 mx-auto w-full max-w-7xl px-4 py-6 sm:py-8 flex gap-8">
+            <div className="flex-1 mx-auto w-full max-w-7xl px-4 flex flex-col lg:flex-row lg:gap-8">
                 <AdminSidebar
                     unreadMessages={unreadMessages}
                     unreadReports={unreadReports}
                     pendingSounds={pendingSounds}
                 />
-                <main className="flex-1 min-w-0">
+                <main className="flex-1 min-w-0 py-4 lg:py-8">
                     {children}
                 </main>
             </div>

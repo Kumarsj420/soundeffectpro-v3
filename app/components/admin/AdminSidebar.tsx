@@ -37,7 +37,7 @@ export default function AdminSidebar({ unreadMessages = 0, unreadReports = 0, pe
     return (
         <>
             {/* Desktop sidebar */}
-            <aside className="hidden lg:flex flex-col w-56 shrink-0">
+            <aside className="hidden lg:flex flex-col w-52 shrink-0 py-8">
                 <div className="flex items-center gap-2 mb-8 px-3">
                     <Shield className="h-5 w-5 text-orange-400" />
                     <span className="font-bold text-white">Admin Panel</span>
@@ -75,8 +75,8 @@ export default function AdminSidebar({ unreadMessages = 0, unreadReports = 0, pe
                 </nav>
             </aside>
 
-            {/* Mobile top bar */}
-            <nav className="lg:hidden flex gap-1 border-b border-white/8 mb-6 pb-0 -mx-4 px-4 overflow-x-auto">
+            {/* Mobile top bar — full width, scrollable, sits between header and content */}
+            <nav className="lg:hidden flex gap-0.5 border-b border-white/8 -mx-4 px-2 overflow-x-auto bg-[#0a0a0a]">
                 {nav.map(item => {
                     const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
                     return (

@@ -100,7 +100,8 @@ export async function POST(req: Request) {
             copyright?: string;
             year?: string;
             genre?: string;
-            thumbnailUrl?: string;
+            thumbnailBase64?: string;  // base64 image data (no prefix)
+            thumbnailMime?: string;    // e.g. "image/jpeg"
         }
 
         const items: ImportItem[] = Array.isArray(body.items) ? body.items.slice(0, 30) : [];
@@ -110,12 +111,11 @@ export async function POST(req: Request) {
 
         await connectDB();
 
-        // Fetch thumbnail buffer once for all items if provided
+        // Decode uploaded thumbnail once and reuse for all items
         let thumbBuffer: Buffer | null = null;
-        if (globalId3.thumbnailUrl) {
+        if (globalId3.thumbnailBase64) {
             try {
-                const tr = await fetch(globalId3.thumbnailUrl, { signal: AbortSignal.timeout(8_000) });
-                if (tr.ok) thumbBuffer = Buffer.from(await tr.arrayBuffer());
+                thumbBuffer = Buffer.from(globalId3.thumbnailBase64, "base64");
             } catch { /* skip thumbnail */ }
         }
 
@@ -181,7 +181,7 @@ export async function POST(req: Request) {
                                 type: { id: 3, name: "front cover" },
                                 data: thumbBuffer,
                                 description: "Cover",
-                                mime: "image/jpeg",
+                                mime: globalId3.thumbnailMime ?? "image/jpeg",
                             };
                         }
                         const tagged = NodeID3.write(id3Tags, audioBuffer);
@@ -201,8 +201,8 @@ export async function POST(req: Request) {
                         license,
                         btnColor: randomBtnColor(),
                         user: { uid: session.user.uid, name: session.user.name ?? "Admin" },
-                        visibility: false,
-                        moderationStatus: "pending",
+                        visibility: true,
+                        moderationStatus: "approved",
                         sourceUrl: item.url,
                     });
 
@@ -216,7 +216,7 @@ export async function POST(req: Request) {
                         throw new Error(`R2 upload failed: ${err instanceof Error ? err.message : "unknown"}`);
                     }
 
-                    syncSound({ s_id, slug, title, tags, category, license, duration, visibility: false }).catch(() => null);
+                    syncSound({ s_id, slug, title, tags, category, license, duration, visibility: true }).catch(() => null);
 
                     return { url: item.url, status: "ok", s_id, slug, title };
                 } catch (err) {

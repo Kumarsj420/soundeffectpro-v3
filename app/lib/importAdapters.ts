@@ -66,6 +66,7 @@ function htmlDecode(str: string): string {
         .replace(/&quot;/g, '"')
         .replace(/&#039;/g, "'")
         .replace(/&apos;/g, "'")
+        .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
         .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
         .replace(/&nbsp;/g, " ");
 }
@@ -101,7 +102,11 @@ async function fetchMyInstants(url: string): Promise<FetchedSoundMeta> {
     const rawTitle = htmlDecode(ogMeta(html, "title"))
         || htmlDecode(html.match(/<h1[^>]*>([^<]+)<\/h1>/i)?.[1] ?? "")
         || htmlDecode(html.match(/<title>([^<]+)<\/title>/i)?.[1] ?? "");
-    const title = rawTitle.replace(/\s*[-–|]\s*myinstants.*$/i, "").replace(/\s*\|\s*.*$/, "").trim() || "Unknown";
+    const title = rawTitle
+        .replace(/\s*[-–|]\s*myinstants.*$/i, "")
+        .replace(/\s*\|\s*.*$/, "")
+        .replace(/\s+sound\s+button\s*$/i, "")  // strip trailing "Sound Button" suffix
+        .trim() || "Unknown";
 
     const image = ogMeta(html, "image");
     const desc = htmlDecode(ogMeta(html, "description")).slice(0, 300);

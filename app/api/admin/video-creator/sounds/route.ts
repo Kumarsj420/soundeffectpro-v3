@@ -28,7 +28,7 @@ export async function GET(req: Request) {
     if (q) filter.title = { $regex: q, $options: "i" };
     if (category && category !== "all") filter.category = category;
 
-    const sortOrder = sort === "recent" ? { createdAt: -1 } : { "stats.views": -1 };
+    const sortOrder: Record<string, 1 | -1> = sort === "recent" ? { createdAt: -1 } : { "stats.views": -1 };
 
     const sounds = await File.find(filter)
         .sort(sortOrder)

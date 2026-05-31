@@ -46,7 +46,7 @@ export default async function AdminDashboard() {
         totalSounds, newToday, pendingSounds, hiddenSounds,
         unreadMessages, totalMessages,
         unreadReports, totalReports,
-        proUsers, totalUsers,
+        totalUsers,
         viewsAgg, downloadsAgg,
         topSounds,
         pendingDocs,
@@ -60,7 +60,6 @@ export default async function AdminDashboard() {
         Message.countDocuments({}),
         Report.countDocuments({ read: false }),
         Report.countDocuments({}),
-        User.countDocuments({ plan: { $in: ["pro", "api"] } }),
         User.countDocuments({}),
         File.aggregate([{ $group: { _id: null, total: { $sum: "$stats.views" } } }]),
         File.aggregate([{ $group: { _id: null, total: { $sum: "$stats.downloads" } } }]),
@@ -107,7 +106,7 @@ export default async function AdminDashboard() {
             {/* ── Stats grid ── */}
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 <StatCard label="Total Sounds"   value={totalSounds}     sub={`+${newToday} today`}        icon={Music}      accent />
-                <StatCard label="Total Users"    value={totalUsers}      sub={`${proUsers} pro`}            icon={Users} />
+                <StatCard label="Total Users"    value={totalUsers}                                 icon={Users} />
                 <StatCard label="Total Views"    value={totalViews}      sub="all-time"                     icon={Eye} />
                 <StatCard label="Downloads"      value={totalDownloads}  sub="all-time"                     icon={Download} />
                 <StatCard label="Pending Review" value={pendingSounds}   sub="need moderation"              icon={Clock}      accent={pendingSounds > 0} />

@@ -9,7 +9,7 @@ import {
     Search, Upload, LogOut, User, Shield,
     Flame, Clock, Music2, Gamepad2, Laugh,
     ChevronDown, X, Menu, BookOpen,
-    Home, Zap, ArrowRight, History, TrendingUp, LayoutGrid, Crown,
+    Home, Zap, ArrowRight, History, TrendingUp, LayoutGrid,
 } from "lucide-react";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -645,7 +645,6 @@ export default function Navbar() {
                                         <Link href="/my/soundboards"><LayoutGrid className="h-4 w-4" /> My Soundboards</Link>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem asChild>
-                                        <Link href="/pricing"><Crown className="h-4 w-4 text-orange-400" /> Upgrade to Pro</Link>
                                     </DropdownMenuItem>
                                     {(session.user.role === "admin" || session.user.role === "moderator") && (
                                         <>

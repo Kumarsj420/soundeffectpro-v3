@@ -76,20 +76,17 @@ export default function AdBanner({
     const { data: session } = useSession();
     const pushed = useRef(false);
 
-    // Pro and API users see no ads
-    const isPro = session?.user.plan === "pro" || session?.user.plan === "api";
-
     useEffect(() => {
-        if (pushed.current || !AD_CLIENT || !slot || isPro) return;
+        if (pushed.current || !AD_CLIENT || !slot) return;
         try {
             pushed.current = true;
             (window.adsbygoogle = window.adsbygoogle || []).push({});
         } catch {
             // AdSense script not yet loaded — will initialise when it does
         }
-    }, [slot, isPro]);
+    }, [slot]);
 
-    if (!AD_CLIENT || !slot || isPro) return null;
+    if (!AD_CLIENT || !slot) return null;
 
     const insProps  = getInsProps(type, slot, format, layoutKey);
     const sizeClass = SIZE_CLASS[type];

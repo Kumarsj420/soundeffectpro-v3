@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { getR2Url } from "@/app/lib/r2/r2Url";
 import { cn } from "@/app/lib/utils";
 
@@ -37,9 +35,7 @@ function parseDuration(d: string): number {
     return (m || 0) * 60 + (s || 0);
 }
 
-export default function AudioPlayer({ s_id, slug, title, duration, btnColor = '0', license }: AudioPlayerProps) {
-    const { data: session } = useSession();
-    const router = useRouter();
+export default function AudioPlayer({ s_id, slug, title, duration, btnColor = '0' }: AudioPlayerProps) {
     const [playing, setPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -50,10 +46,6 @@ export default function AudioPlayer({ s_id, slug, title, duration, btnColor = '0
     const totalTime = parseDuration(duration);
     const hue = HUE_MAP[btnColor] ?? 'hue-rotate-0';
 
-    // Royalty-free sounds require Pro plan to download
-    const isRoyaltyFree  = license === 'royalty-free';
-    const userPlan       = session?.user.plan ?? 'free';
-    const canDownload    = !isRoyaltyFree || userPlan === 'pro' || userPlan === 'api';
 
     useEffect(() => {
         return () => {
@@ -169,29 +161,16 @@ export default function AudioPlayer({ s_id, slug, title, duration, btnColor = '0
                     </div>
                 </div>
 
-                {/* Download — gated for royalty-free sounds */}
-                {canDownload ? (
-                    <button
-                        onClick={handleDownload}
-                        aria-label="Download sound"
-                        className="shrink-0 w-10 h-10 rounded-full border border-white/15 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center transition-colors"
-                    >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 8l-3-3m3 3l3-3" />
-                        </svg>
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => router.push("/pricing")}
-                        aria-label="Pro required to download royalty-free sound"
-                        title="Pro plan required — click to upgrade"
-                        className="shrink-0 w-10 h-10 rounded-full border border-orange-500/40 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 flex items-center justify-center transition-colors"
-                    >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0 0v2m0-2h2m-2 0H10M9 11V7a3 3 0 116 0v4" />
-                        </svg>
-                    </button>
-                )}
+                {/* Download */}
+                <button
+                    onClick={handleDownload}
+                    aria-label="Download sound"
+                    className="shrink-0 w-10 h-10 rounded-full border border-white/15 hover:border-orange-500/50 hover:text-orange-400 flex items-center justify-center transition-colors"
+                >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1M12 12V4m0 8l-3-3m3 3l3-3" />
+                    </svg>
+                </button>
             </div>
         </div>
     );

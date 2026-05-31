@@ -1,7 +1,14 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import AdminNav from "@/app/components/admin/AdminNav";
+import { connectDB } from "@/app/lib/db";
+import Message from "@/app/lib/models/Message";
+import Report from "@/app/lib/models/Report";
+import File from "@/app/lib/models/File";
+import AdminSidebar from "@/app/components/admin/AdminSidebar";
+import { Toaster } from "sonner";
 import type { ReactNode } from "react";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
     const session = await auth();
@@ -9,10 +16,26 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         redirect("/");
     }
 
+    await connectDB();
+    const [unreadMessages, unreadReports, pendingSounds] = await Promise.all([
+        Message.countDocuments({ read: false }),
+        Report.countDocuments({ read: false }),
+        File.countDocuments({ moderationStatus: "pending" }),
+    ]);
+
     return (
-        <div className="mx-auto max-w-7xl px-4 py-8">
-            <AdminNav />
-            {children}
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
+            <div className="flex gap-8">
+                <AdminSidebar
+                    unreadMessages={unreadMessages}
+                    unreadReports={unreadReports}
+                    pendingSounds={pendingSounds}
+                />
+                <main className="flex-1 min-w-0">
+                    {children}
+                </main>
+            </div>
+            <Toaster theme="dark" position="bottom-right" richColors />
         </div>
     );
 }

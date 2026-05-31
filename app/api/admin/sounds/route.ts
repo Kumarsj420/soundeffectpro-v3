@@ -24,20 +24,22 @@ export async function GET(req: Request) {
     const sp         = new URL(req.url).searchParams;
     const page       = Math.max(1, parseInt(sp.get("page") ?? "1"));
     const limit      = Math.min(100, parseInt(sp.get("limit") ?? "50"));
-    const license    = sp.get("license") ?? "";
-    const category   = sp.get("category") ?? "";
-    const visibility = sp.get("visibility") ?? "";
-    const search     = sp.get("search")?.trim() ?? "";
+    const license          = sp.get("license") ?? "";
+    const category         = sp.get("category") ?? "";
+    const visibility       = sp.get("visibility") ?? "";
+    const search           = sp.get("search")?.trim() ?? "";
+    const moderationStatus = sp.get("moderationStatus") ?? "";
 
     await connectDB();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const filter: Record<string, any> = {};
-    if (license)               filter.license    = license;
-    if (category)              filter.category   = category;
-    if (visibility === "true") filter.visibility = true;
-    if (visibility === "false") filter.visibility = false;
-    if (search)                filter.title      = { $regex: search, $options: "i" };
+    if (license)               filter.license          = license;
+    if (category)              filter.category         = category;
+    if (visibility === "true") filter.visibility       = true;
+    if (visibility === "false") filter.visibility      = false;
+    if (moderationStatus)      filter.moderationStatus = moderationStatus;
+    if (search)                filter.title            = { $regex: search, $options: "i" };
 
     const skip = (page - 1) * limit;
 
@@ -46,23 +48,28 @@ export async function GET(req: Request) {
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .select("s_id slug title category license visibility trendScore stats createdAt")
+            .select("s_id slug title category license visibility moderationStatus trendScore stats createdAt user duration tags description")
             .lean(),
         File.countDocuments(filter),
     ]);
 
     return Response.json({
         sounds: docs.map(s => ({
-            _id:        String(s._id),
-            s_id:       s.s_id,
-            slug:       s.slug ?? "",
-            title:      s.title,
-            category:   (s.category as string) ?? "—",
-            license:    (s.license as string) ?? "unknown",
-            visibility: s.visibility,
-            trendScore: (s.trendScore as number) ?? 0,
-            views:      ((s.stats as { views?: number })?.views) ?? 0,
-            createdAt:  (s.createdAt as Date).toISOString(),
+            _id:              String(s._id),
+            s_id:             s.s_id,
+            slug:             s.slug ?? "",
+            title:            s.title,
+            category:         (s.category as string) ?? "—",
+            license:          (s.license as string) ?? "unknown",
+            visibility:       s.visibility,
+            moderationStatus: (s.moderationStatus as string) ?? "approved",
+            trendScore:       (s.trendScore as number) ?? 0,
+            views:            ((s.stats as { views?: number })?.views) ?? 0,
+            createdAt:        (s.createdAt as Date).toISOString(),
+            duration:         (s.duration as string) ?? "",
+            tags:             (s.tags as string[]) ?? [],
+            description:      (s.description as string) ?? "",
+            user:             (s.user as { uid?: string; name?: string }) ?? {},
         })),
         total,
         page,

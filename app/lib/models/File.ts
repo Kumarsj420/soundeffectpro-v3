@@ -43,6 +43,7 @@ export interface IFile extends Document {
     trendScore: number;
     visibility: boolean;
     moderationStatus: 'pending' | 'approved' | 'rejected';
+    sourceUrl?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -132,6 +133,7 @@ const FileSchema = new Schema<IFile>({
         enum: ['pending', 'approved', 'rejected'],
         default: 'approved',
     },
+    sourceUrl: { type: String, sparse: true },
 }, {
     timestamps: true,
     collection: 'files',
@@ -159,6 +161,7 @@ FileSchema.index({ trendScore: -1 });
 FileSchema.index({ visibility: 1, trendScore: -1 });
 FileSchema.index({ visibility: 1, category: 1, trendScore: -1 });
 FileSchema.index({ visibility: 1, license: 1, trendScore: -1 });
+FileSchema.index({ sourceUrl: 1 }, { sparse: true });
 
 const File: Model<IFile> = mongoose.models.File || mongoose.model<IFile>('File', FileSchema);
 export default File;

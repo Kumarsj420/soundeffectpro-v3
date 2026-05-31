@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+    serverExternalPackages: ["node-id3"],
     images: {
         remotePatterns: [
             { protocol: "https", hostname: "cdn.discordapp.com" },

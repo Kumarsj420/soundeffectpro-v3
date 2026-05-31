@@ -44,12 +44,15 @@ async function runFfmpeg(
     return new Promise<void>((resolve, reject) => {
         ffmpeg()
             .input(coverPath)
-            .inputOptions(["-loop 1"])
+            .inputOptions(["-loop 1", "-framerate 1"])  // 1fps input — static image needs no more
             .input(audioPath)
             .videoCodec("libx264")
             .audioCodec("aac")
-            .audioBitrate("192k")
+            .audioBitrate("128k")
             .outputOptions([
+                "-r 1",               // 1fps output — 25x less encoding work, valid for YouTube
+                "-preset ultrafast",  // minimum CPU & memory usage
+                "-crf 28",            // slightly compressed — fine for a still image
                 "-tune stillimage",
                 `-vf scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height}`,
                 "-pix_fmt yuv420p",

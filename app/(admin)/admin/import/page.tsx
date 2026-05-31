@@ -467,14 +467,13 @@ function SoundCardRow({
                     </button>
                 )}
 
-                {/* Done: view link */}
-                {card.status === "done" && card.resultSlug && (
+                {/* Done: link to pending moderation queue (sound not public until approved) */}
+                {card.status === "done" && (
                     <a
-                        href={`/sounds/${card.resultSlug}`}
-                        target="_blank"
-                        className="text-xs text-green-400 hover:underline shrink-0"
+                        href="/admin/sounds?tab=pending"
+                        className="text-xs text-green-400 hover:underline shrink-0 whitespace-nowrap"
                     >
-                        View →
+                        Approve ↗
                     </a>
                 )}
 

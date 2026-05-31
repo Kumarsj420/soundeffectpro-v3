@@ -124,7 +124,7 @@ export async function POST(req: Request) {
                 try {
                     // Validate fields
                     const title = item.title.trim().slice(0, 100);
-                    if (title.length < 2) throw new Error("Title too short");
+                    if (title.length < 3) throw new Error("Title too short (min 3 chars)");
 
                     const category = CATEGORIES.includes(item.category as Category)
                         ? (item.category as Category) : "Random";
@@ -135,26 +135,32 @@ export async function POST(req: Request) {
                         .filter(t => t.length > 0)
                         .slice(0, 10);
 
-                    // Download audio
-                    const audioResp = await fetch(item.audioUrl, { signal: AbortSignal.timeout(30_000) });
-                    if (!audioResp.ok) throw new Error(`Audio download failed: ${audioResp.status}`);
+                    // Download audio (browser-like headers to avoid 403 from CDNs)
+                    const audioResp = await fetch(item.audioUrl, {
+                        headers: {
+                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                            "Accept": "audio/mpeg,audio/*;q=0.9,*/*;q=0.8",
+                            "Referer": new URL(item.url).origin + "/",
+                        },
+                        signal: AbortSignal.timeout(30_000),
+                    });
+                    if (!audioResp.ok) throw new Error(`Audio download failed: HTTP ${audioResp.status} from ${item.audioUrl}`);
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     let audioBuffer: Buffer = Buffer.from(await audioResp.arrayBuffer() as any);
 
                     if (audioBuffer.length < 1000) throw new Error("Downloaded file too small");
                     if (audioBuffer.length > 50 * 1024 * 1024) throw new Error("Audio file too large (>50MB)");
 
-                    // Compute duration
+                    // Compute duration (schema allows 00:00–20:59)
                     let duration = "00:30"; // safe fallback
                     try {
                         const { parseBuffer } = await import("music-metadata");
                         const meta = await parseBuffer(audioBuffer, "audio/mpeg");
-                        if (meta.format.duration) {
-                            duration = `${String(Math.floor(meta.format.duration / 60)).padStart(2, "0")}:${String(Math.floor(meta.format.duration % 60)).padStart(2, "0")}`;
-                            // clamp to model validation pattern
-                            const mins = Math.floor(meta.format.duration / 60);
-                            const secs = Math.floor(meta.format.duration % 60);
-                            if (mins <= 20) duration = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+                        if (meta.format.duration && meta.format.duration > 0) {
+                            const totalSecs = Math.floor(Math.min(meta.format.duration, 1200)); // cap at 20:00
+                            const mins = Math.floor(totalSecs / 60);
+                            const secs = totalSecs % 60;
+                            duration = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
                         }
                     } catch { /* keep fallback */ }
 

@@ -6,6 +6,7 @@ export const metadata: Metadata = {
     robots: { index: false, follow: false },
 };
 
-export default function AdminSoundsPage() {
-    return <AdminSoundsTable />;
+export default async function AdminSoundsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+    const { tab } = await searchParams;
+    return <AdminSoundsTable initialTab={tab === "pending" ? "pending" : "all"} />;
 }

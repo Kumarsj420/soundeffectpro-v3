@@ -73,7 +73,8 @@ function htmlDecode(str: string): string {
 async function fetchHtml(url: string): Promise<string> {
     const resp = await fetch(url, {
         headers: {
-            "User-Agent": "Mozilla/5.0 (compatible; SoundBot/1.0)",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
         },
         signal: AbortSignal.timeout(12_000),
@@ -86,12 +87,12 @@ async function fetchHtml(url: string): Promise<string> {
 async function fetchMyInstants(url: string): Promise<FetchedSoundMeta> {
     const html = await fetchHtml(url);
 
-    // Audio src can appear as /media/sounds/... in button onclick or data attributes
-    const audioRaw =
-        html.match(/href=["'](\/media\/sounds\/[^"'?]+\.mp3)["']/i)?.[1] ??
-        html.match(/<audio[^>]+src=["']([^"']+)["']/i)?.[1] ??
-        html.match(/data-url=["']([^"'?]+\.mp3)["']/i)?.[1] ??
-        html.match(/sound_url\s*=\s*["']([^"']+)["']/i)?.[1];
+    // myinstants embeds audio path in onclick, data-*, JSON, or <audio> — search broadly
+    const fullUrl = html.match(/https?:\/\/(?:www\.)?myinstants\.com\/media\/sounds\/[^"'?\s\\]+\.mp3/i)?.[0];
+    const relPath = html.match(/\/media\/sounds\/[^"'?\s\\]+\.mp3/i)?.[0];
+    const audioRaw = fullUrl ?? relPath
+        ?? html.match(/<audio[^>]+src=["']([^"']+)["']/i)?.[1]
+        ?? html.match(/<source[^>]+src=["']([^"']+\.mp3)["']/i)?.[1];
 
     if (!audioRaw) throw new Error("Could not find audio URL on myinstants page");
 

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/app/lib/utils";
 import {
     LayoutDashboard, Music, Upload, Mail, Flag,
-    Shield, ChevronRight, Link2, X,
+    Shield, ChevronRight, Link2, X, Film,
 } from "lucide-react";
 
 interface NavItem {
@@ -37,7 +37,8 @@ export default function AdminSidebar({
         { href: "/admin",           label: "Dashboard",  icon: LayoutDashboard, exact: true },
         { href: "/admin/sounds",    label: "Sounds",     icon: Music,   badge: pendingSounds || undefined },
         { href: "/admin/upload",    label: "Upload",     icon: Upload },
-        { href: "/admin/import",    label: "Import URL", icon: Link2 },
+        { href: "/admin/import",        label: "Import URL",     icon: Link2 },
+        { href: "/admin/video-creator", label: "Video Creator",   icon: Film },
         { href: "/admin/messages",  label: "Messages",   icon: Mail,    badge: unreadMessages || undefined },
         { href: "/admin/reports",   label: "Reports",    icon: Flag,    badge: unreadReports  || undefined },
     ];

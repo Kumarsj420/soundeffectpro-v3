@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-    serverExternalPackages: ["node-id3"],
+    serverExternalPackages: ["node-id3", "fluent-ffmpeg", "ffmpeg-static", "archiver"],
     images: {
         remotePatterns: [
             { protocol: "https", hostname: "cdn.discordapp.com" },

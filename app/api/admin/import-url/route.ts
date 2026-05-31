@@ -100,7 +100,8 @@ export async function POST(req: Request) {
             copyright?: string;
             year?: string;
             genre?: string;
-            thumbnailBase64?: string;  // base64 image data (no prefix)
+            thumbnailUrl?: string;     // R2 URL — fetched server-side for ID3 embedding
+            thumbnailBase64?: string;  // fallback: base64 image data (no prefix)
             thumbnailMime?: string;    // e.g. "image/jpeg"
         }
 
@@ -111,9 +112,15 @@ export async function POST(req: Request) {
 
         await connectDB();
 
-        // Decode uploaded thumbnail once and reuse for all items
+        // Load thumbnail once and reuse for all items
         let thumbBuffer: Buffer | null = null;
-        if (globalId3.thumbnailBase64) {
+        if (globalId3.thumbnailUrl) {
+            try {
+                const thumbResp = await fetch(globalId3.thumbnailUrl, { signal: AbortSignal.timeout(10_000) });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                if (thumbResp.ok) thumbBuffer = Buffer.from(await thumbResp.arrayBuffer() as any);
+            } catch { /* skip thumbnail */ }
+        } else if (globalId3.thumbnailBase64) {
             try {
                 thumbBuffer = Buffer.from(globalId3.thumbnailBase64, "base64");
             } catch { /* skip thumbnail */ }

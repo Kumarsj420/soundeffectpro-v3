@@ -44,9 +44,8 @@ interface GlobalId3 {
     copyright: string;
     year: string;
     genre: string;
-    thumbnailBase64?: string;
-    thumbnailMime?: string;
-    thumbnailPreview?: string;  // data URL for <img>, not sent to server
+    thumbnailUrl?: string;      // R2 URL — persisted in localStorage, sent to server
+    thumbnailPreview?: string;  // data URL or R2 URL for <img>, not sent to server
 }
 
 const DEFAULT_ID3: GlobalId3 = {
@@ -87,16 +86,18 @@ export default function ImportPage() {
     const { playing, toggle } = useAudioPlayer();
     const thumbInputRef = useRef<HTMLInputElement>(null);
 
-    // Persist text fields only (skip binary thumbnail)
+    // Restore text fields from sessionStorage; restore thumbnail URL from localStorage
     useEffect(() => {
         const saved = sessionStorage.getItem("sfx_import_id3");
         if (saved) try {
-            const { thumbnailBase64: _, thumbnailMime: __, thumbnailPreview: ___, ...rest } = JSON.parse(saved);
+            const { thumbnailPreview: _, ...rest } = JSON.parse(saved);
             setGlobalId3(g => ({ ...g, ...rest }));
         } catch { /* ignore */ }
+        const thumbUrl = localStorage.getItem("sfx_import_thumb_url");
+        if (thumbUrl) setGlobalId3(g => ({ ...g, thumbnailUrl: thumbUrl, thumbnailPreview: thumbUrl }));
     }, []);
     useEffect(() => {
-        const { thumbnailBase64: _, thumbnailMime: __, thumbnailPreview: ___, ...rest } = globalId3;
+        const { thumbnailPreview: _, ...rest } = globalId3;
         sessionStorage.setItem("sfx_import_id3", JSON.stringify(rest));
     }, [globalId3]);
 
@@ -110,11 +111,10 @@ export default function ImportPage() {
     const handleThumbUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        const mime = file.type || "image/jpeg";
 
         const img = new Image();
         const objectUrl = URL.createObjectURL(file);
-        img.onload = () => {
+        img.onload = async () => {
             const MAX = 500;
             const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
             const canvas = document.createElement("canvas");
@@ -123,16 +123,32 @@ export default function ImportPage() {
             canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
             const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
             const base64  = dataUrl.split(",")[1];
-            setGlobalId3(g => ({ ...g, thumbnailBase64: base64, thumbnailMime: "image/jpeg", thumbnailPreview: dataUrl }));
             URL.revokeObjectURL(objectUrl);
+
+            // Show preview immediately while upload happens
+            setGlobalId3(g => ({ ...g, thumbnailPreview: dataUrl }));
+
+            // Upload to R2 for persistence across page refreshes
+            try {
+                const resp = await fetch("/api/admin/import-thumbnail", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ base64 }),
+                });
+                const data = await resp.json();
+                if (data.url) {
+                    setGlobalId3(g => ({ ...g, thumbnailUrl: data.url }));
+                    localStorage.setItem("sfx_import_thumb_url", data.url);
+                }
+            } catch { /* continue without R2 persistence */ }
         };
         img.src = objectUrl;
-        // reset input so same file can be re-selected
         e.target.value = "";
     }, []);
 
     const clearThumb = useCallback(() => {
-        setGlobalId3(g => ({ ...g, thumbnailBase64: undefined, thumbnailMime: undefined, thumbnailPreview: undefined }));
+        setGlobalId3(g => ({ ...g, thumbnailUrl: undefined, thumbnailPreview: undefined }));
+        localStorage.removeItem("sfx_import_thumb_url");
     }, []);
 
     // ── Fetch metadata ────────────────────────────────────────────────────────
@@ -209,7 +225,7 @@ export default function ImportPage() {
                         url: c.url, audioUrl: c.audioUrl,
                         title: c.title, tags: c.tags,
                         category: c.category, license: c.license,
-                        description: c.description,
+                        description: c.description || undefined,
                     })),
                     globalId3: id3ToSend,
                 }),
@@ -454,6 +470,7 @@ function SoundCardRow({
 }) {
     const isPlaying = playing === card.id;
     const [expanded, setExpanded] = useState(false);
+    const [rawTags, setRawTags] = useState(() => card.tags.join(", "));
 
     const statusIcon = {
         fetching:  <Loader2 className="h-4 w-4 animate-spin text-white/30 shrink-0" />,
@@ -573,8 +590,9 @@ function SoundCardRow({
                     <div className="sm:col-span-2">
                         <label className="block text-xs text-white/40 mb-1">Tags (comma-separated)</label>
                         <input className="input-field"
-                            value={card.tags.join(", ")}
-                            onChange={e => onUpdate(card.id, "tags", e.target.value.split(",").map(t => t.trim()).filter(Boolean))}
+                            value={rawTags}
+                            onChange={e => setRawTags(e.target.value)}
+                            onBlur={() => onUpdate(card.id, "tags", rawTags.split(",").map(t => t.trim()).filter(Boolean))}
                             placeholder="tag1, tag2, tag3"
                         />
                     </div>

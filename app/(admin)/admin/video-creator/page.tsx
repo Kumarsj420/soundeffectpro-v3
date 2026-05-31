@@ -64,6 +64,7 @@ export default function VideoCreatorPage() {
     // Setup state
     const [query, setQuery] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("all");
+    const [sortMode, setSortMode] = useState<"recent" | "popular">("recent");
     const [searchResults, setSearchResults] = useState<Sound[]>([]);
     const [searching, setSearching] = useState(false);
     const [selected, setSelected] = useState<SelectedSound[]>([]);
@@ -81,10 +82,10 @@ export default function VideoCreatorPage() {
     const [zipFilename, setZipFilename] = useState<string | null>(null);
 
     // ── Sound search ──────────────────────────────────────────────────────────
-    const searchSounds = useCallback(async (q: string, cat: string) => {
+    const searchSounds = useCallback(async (q: string, cat: string, sort: "recent" | "popular") => {
         setSearching(true);
         try {
-            const params = new URLSearchParams({ limit: "20" });
+            const params = new URLSearchParams({ limit: "20", sort });
             if (q) params.set("q", q);
             if (cat && cat !== "all") params.set("category", cat);
             const res = await fetch(`/api/admin/video-creator/sounds?${params}`);
@@ -98,12 +99,12 @@ export default function VideoCreatorPage() {
     }, []);
 
     useEffect(() => {
-        const t = setTimeout(() => searchSounds(query, categoryFilter), 300);
+        const t = setTimeout(() => searchSounds(query, categoryFilter, sortMode), 300);
         return () => clearTimeout(t);
-    }, [query, categoryFilter, searchSounds]);
+    }, [query, categoryFilter, sortMode, searchSounds]);
 
-    // Load initial results
-    useEffect(() => { searchSounds("", "all"); }, [searchSounds]);
+    // Load initial results — recent first
+    useEffect(() => { searchSounds("", "all", "recent"); }, [searchSounds]);
 
     // ── Select / deselect sounds ──────────────────────────────────────────────
     const toggleSound = useCallback((sound: Sound) => {
@@ -258,6 +259,7 @@ export default function VideoCreatorPage() {
                 <SetupPhase
                     query={query} setQuery={setQuery}
                     categoryFilter={categoryFilter} setCategoryFilter={setCategoryFilter}
+                    sortMode={sortMode} setSortMode={setSortMode}
                     searchResults={searchResults} searching={searching}
                     selected={selected}
                     format={format} setFormat={setFormat}
@@ -293,6 +295,7 @@ export default function VideoCreatorPage() {
 // ── Setup Phase ───────────────────────────────────────────────────────────────
 function SetupPhase({
     query, setQuery, categoryFilter, setCategoryFilter,
+    sortMode, setSortMode,
     searchResults, searching, selected, format, setFormat,
     coverPreview, coverInputRef, generating, playing,
     onToggleSound, onRemoveSelected, onUpdateTitle,
@@ -300,6 +303,7 @@ function SetupPhase({
 }: {
     query: string; setQuery: (v: string) => void;
     categoryFilter: string; setCategoryFilter: (v: string) => void;
+    sortMode: "recent" | "popular"; setSortMode: (v: "recent" | "popular") => void;
     searchResults: Sound[]; searching: boolean;
     selected: SelectedSound[];
     format: "landscape" | "portrait"; setFormat: (v: "landscape" | "portrait") => void;
@@ -308,6 +312,7 @@ function SetupPhase({
     generating: boolean;
     playing: string | null;
     onToggleSound: (s: Sound) => void;
+
     onRemoveSelected: (id: string) => void;
     onUpdateTitle: (id: string, title: string) => void;
     onCoverUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -412,6 +417,22 @@ function SetupPhase({
                                 <option value="all">All</option>
                                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
+                            <div className="flex rounded-xl border border-white/8 bg-black/20 p-0.5 shrink-0">
+                                {(["recent", "popular"] as const).map(s => (
+                                    <button
+                                        key={s}
+                                        onClick={() => setSortMode(s)}
+                                        className={cn(
+                                            "px-3 py-1.5 text-xs font-medium rounded-lg transition-all",
+                                            sortMode === s
+                                                ? "bg-orange-500/20 text-orange-400"
+                                                : "text-white/30 hover:text-white"
+                                        )}
+                                    >
+                                        {s === "recent" ? "Recent" : "Popular"}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         <div className="max-h-60 overflow-y-auto space-y-1 pr-1">

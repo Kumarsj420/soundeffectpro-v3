@@ -18,6 +18,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const q = url.searchParams.get("q")?.trim() ?? "";
     const category = url.searchParams.get("category")?.trim() ?? "";
+    const sort = url.searchParams.get("sort") === "recent" ? "recent" : "popular";
     const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "20", 10), 50);
 
     await connectDB();
@@ -27,8 +28,10 @@ export async function GET(req: Request) {
     if (q) filter.title = { $regex: q, $options: "i" };
     if (category && category !== "all") filter.category = category;
 
+    const sortOrder = sort === "recent" ? { createdAt: -1 } : { "stats.views": -1 };
+
     const sounds = await File.find(filter)
-        .sort({ "stats.views": -1 })
+        .sort(sortOrder)
         .limit(limit)
         .select("s_id slug title duration tags category")
         .lean();

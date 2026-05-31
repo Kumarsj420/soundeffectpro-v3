@@ -5,7 +5,7 @@ import Message from "@/app/lib/models/Message";
 import Report from "@/app/lib/models/Report";
 import File from "@/app/lib/models/File";
 import AdminSidebar from "@/app/components/admin/AdminSidebar";
-import { Toaster } from "sonner";
+import AdminHeader from "@/app/components/admin/AdminHeader";
 import type { ReactNode } from "react";
 
 export const dynamic = "force-dynamic";
@@ -24,8 +24,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     ]);
 
     return (
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
-            <div className="flex gap-8">
+        <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
+            <AdminHeader />
+            <div className="flex-1 mx-auto w-full max-w-7xl px-4 py-6 sm:py-8 flex gap-8">
                 <AdminSidebar
                     unreadMessages={unreadMessages}
                     unreadReports={unreadReports}
@@ -35,7 +36,6 @@ export default async function AdminLayout({ children }: { children: ReactNode })
                     {children}
                 </main>
             </div>
-            <Toaster theme="dark" position="bottom-right" richColors />
         </div>
     );
 }

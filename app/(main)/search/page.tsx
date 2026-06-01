@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import NotFound from "@/app/lib/models/NotFound";
@@ -22,7 +23,6 @@ export async function generateMetadata({
 }): Promise<Metadata> {
     const { q } = await searchParams;
 
-    // If query is empty or contains banned content, return safe generic metadata
     if (!q || containsBannedWord(q)) {
         return { title: "Search Sounds", robots: NO_INDEX };
     }
@@ -61,18 +61,15 @@ export default async function SearchPage({
     const skip = (pageNum - 1) * limit;
 
     // ── Banned word guard ─────────────────────────────────────────────────────
-    // If the query contains a slur or hate-speech term:
-    //  • Return zero results silently (no error, no echo of the word)
-    //  • Skip DB queries and NotFound tracking entirely
-    //  • The page is already noindex so it won't be indexed by search engines
-    const isBannedQuery = query.length > 0 && containsBannedWord(query);
+    // Redirect immediately — the word never appears in the URL or on the page.
+    if (query.length > 0 && containsBannedWord(query)) redirect("/search");
 
     await connectDB();
 
     let sounds: Record<string, unknown>[] = [];
     let total = 0;
 
-    if (query && !isBannedQuery) {
+    if (query) {
         // ── Try Meilisearch first ─────────────────────────────────────────
         const meili = await searchSounds(query, {
             page: pageNum, limit, sort: sort as "relevant" | "popular" | "newest",
@@ -143,7 +140,7 @@ export default async function SearchPage({
         <div className="mx-auto max-w-7xl px-4 py-8">
             {/* Header */}
             <div className="mb-6">
-                {query && !isBannedQuery ? (
+                {query ? (
                     <>
                         <h1 className="text-2xl font-bold mb-1">
                             Results for <span className="text-orange-400">"{query}"</span>

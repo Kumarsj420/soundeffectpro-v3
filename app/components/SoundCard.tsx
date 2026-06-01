@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef } from "react";
-import { Flame, Download } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import {
+    Flame, Download, MoreVertical, Heart, Share2,
+    LayoutGrid, ChevronLeft, Check, Plus, Loader2,
+} from "lucide-react";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 import { getR2Url } from "@/app/lib/r2/r2Url";
 import { Badge, getCategoryVariant } from "@/app/components/ui/badge";
 import { cn } from "@/app/lib/utils";
@@ -31,6 +36,257 @@ function fmt(n: number) {
     return String(n);
 }
 
+// ── Card action menu (3-dot) ──────────────────────────────────────────────────
+interface Board { sbId: string; name: string; sounds: string[] }
+
+function CardMenu({ s_id, slug, title }: { s_id: string; slug: string; title: string }) {
+    const { data: session } = useSession();
+    const [open,     setOpen]     = useState(false);
+    const [view,     setView]     = useState<"menu" | "soundboard">("menu");
+    const [liked,    setLiked]    = useState(false);
+    const [liking,   setLiking]   = useState(false);
+    const [copied,   setCopied]   = useState(false);
+    // soundboard
+    const [boards,   setBoards]   = useState<Board[]>([]);
+    const [loading,  setLoading]  = useState(false);
+    const [added,    setAdded]    = useState<Set<string>>(new Set());
+    const [busy,     setBusy]     = useState<string | null>(null);
+    const [creating, setCreating] = useState(false);
+    const [newName,  setNewName]  = useState("");
+
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close on outside click
+    useEffect(() => {
+        if (!open) return;
+        function handler(e: MouseEvent) {
+            if (!menuRef.current?.contains(e.target as Node)) {
+                setOpen(false);
+                setView("menu");
+            }
+        }
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [open]);
+
+    // Load soundboards when entering soundboard view
+    useEffect(() => {
+        if (view !== "soundboard" || !session) return;
+        setLoading(true);
+        fetch("/api/soundboard")
+            .then(r => r.json())
+            .then(d => {
+                setBoards(d.boards ?? []);
+                setAdded(new Set(
+                    (d.boards as Board[] ?? [])
+                        .filter(b => b.sounds.includes(s_id))
+                        .map(b => b.sbId)
+                ));
+            })
+            .catch(() => null)
+            .finally(() => setLoading(false));
+    }, [view, session, s_id]);
+
+    function close() { setOpen(false); setView("menu"); }
+
+    async function handleLike() {
+        if (liking) return;
+        if (!session) { toast.error("Sign in to like sounds"); close(); return; }
+        setLiking(true);
+        const res = await fetch(`/api/sound/${slug}-${s_id}/like`, { method: "POST" }).catch(() => null);
+        if (res?.ok) {
+            const data = await res.json() as { liked: boolean };
+            setLiked(data.liked);
+            toast.success(data.liked ? "Added to likes" : "Removed from likes");
+        } else {
+            toast.error("Couldn't update like");
+        }
+        setLiking(false);
+        close();
+    }
+
+    async function handleShare() {
+        const url = `${window.location.origin}/sound/${slug}-${s_id}`;
+        if (navigator.share) {
+            await navigator.share({ title: `${title} Sound Effect`, text: `Play "${title}" for free 🎵`, url }).catch(() => null);
+        } else {
+            await navigator.clipboard.writeText(url).catch(() => null);
+            setCopied(true);
+            toast.success("Link copied!");
+            setTimeout(() => setCopied(false), 2000);
+        }
+        close();
+    }
+
+    async function toggleBoard(sbId: string, isAdded: boolean) {
+        setBusy(sbId);
+        const res = await fetch(`/api/soundboard/${sbId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: isAdded ? "remove" : "add", s_id }),
+        }).catch(() => null);
+        if (res?.ok) {
+            setAdded(prev => {
+                const next = new Set(prev);
+                isAdded ? next.delete(sbId) : next.add(sbId);
+                return next;
+            });
+        }
+        setBusy(null);
+    }
+
+    async function createBoard() {
+        if (!newName.trim() || creating) return;
+        setCreating(true);
+        const res = await fetch("/api/soundboard", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: newName.trim(), s_id }),
+        }).catch(() => null);
+        if (res?.ok) {
+            const { board } = await res.json() as { board: Board };
+            setBoards(prev => [board, ...prev]);
+            setAdded(prev => new Set([...prev, board.sbId]));
+            setNewName("");
+        }
+        setCreating(false);
+    }
+
+    const inAny = boards.some(b => added.has(b.sbId));
+
+    return (
+        <div ref={menuRef} className="relative shrink-0">
+            <button
+                onClick={(e) => { e.stopPropagation(); setOpen(o => !o); setView("menu"); }}
+                aria-label="More options"
+                className="h-7 w-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/8 transition-colors"
+            >
+                <MoreVertical className="h-4 w-4" />
+            </button>
+
+            {open && (
+                <div className="absolute right-0 top-full mt-1 z-50 w-52 rounded-xl border border-white/10 bg-[#111113] shadow-2xl shadow-black/50 overflow-hidden">
+                    {view === "menu" ? (
+                        <div className="py-1">
+                            {/* Like */}
+                            <button
+                                onClick={handleLike}
+                                disabled={liking}
+                                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/5 transition-colors disabled:opacity-50"
+                            >
+                                {liking
+                                    ? <Loader2 className="h-4 w-4 animate-spin shrink-0 text-white/40" />
+                                    : <Heart className={cn("h-4 w-4 shrink-0 transition-colors", liked ? "fill-red-400 text-red-400" : "text-white/50")} />
+                                }
+                                <span className={liked ? "text-red-400" : "text-white/70"}>
+                                    {liked ? "Liked" : "Like"}
+                                </span>
+                            </button>
+
+                            {/* Share */}
+                            <button
+                                onClick={handleShare}
+                                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 transition-colors"
+                            >
+                                <Share2 className={cn("h-4 w-4 shrink-0", copied ? "text-green-400" : "text-white/50")} />
+                                <span className={copied ? "text-green-400" : ""}>{copied ? "Copied!" : "Share"}</span>
+                            </button>
+
+                            {/* Soundboard */}
+                            <button
+                                onClick={() => {
+                                    if (!session) { toast.error("Sign in to use soundboards"); close(); return; }
+                                    setView("soundboard");
+                                }}
+                                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-white/70 hover:bg-white/5 transition-colors"
+                            >
+                                <LayoutGrid className={cn("h-4 w-4 shrink-0", inAny ? "text-emerald-400" : "text-white/50")} />
+                                <span className={inAny ? "text-emerald-400" : ""}>
+                                    {inAny ? "In Soundboard" : "Soundboard"}
+                                </span>
+                            </button>
+                        </div>
+                    ) : (
+                        /* ── Soundboard picker ───────────────────────────── */
+                        <div>
+                            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/6">
+                                <button
+                                    onClick={() => setView("menu")}
+                                    className="text-white/40 hover:text-white transition-colors"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </button>
+                                <span className="text-sm font-medium text-white/80">Add to Soundboard</span>
+                            </div>
+
+                            <div className="max-h-48 overflow-y-auto">
+                                {loading && (
+                                    <div className="flex justify-center py-5">
+                                        <Loader2 className="h-4 w-4 animate-spin text-white/30" />
+                                    </div>
+                                )}
+                                {!loading && boards.length === 0 && (
+                                    <p className="text-xs text-white/30 px-4 py-4 text-center">
+                                        No soundboards yet
+                                    </p>
+                                )}
+                                {boards.map(b => {
+                                    const isAdded = added.has(b.sbId);
+                                    const isBusy  = busy === b.sbId;
+                                    return (
+                                        <button
+                                            key={b.sbId}
+                                            onClick={() => toggleBoard(b.sbId, isAdded)}
+                                            disabled={isBusy}
+                                            className="flex w-full items-center gap-3 px-4 py-2.5 hover:bg-white/5 transition-colors text-left disabled:opacity-50"
+                                        >
+                                            <div className={cn(
+                                                "h-4 w-4 rounded flex items-center justify-center shrink-0 border transition-colors",
+                                                isAdded ? "border-emerald-500 bg-emerald-500" : "border-white/20"
+                                            )}>
+                                                {isBusy
+                                                    ? <Loader2 className="h-2.5 w-2.5 animate-spin text-white" />
+                                                    : isAdded && <Check className="h-2.5 w-2.5 text-white" />
+                                                }
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm text-white/80 truncate">{b.name}</p>
+                                                <p className="text-[10px] text-white/30">{b.sounds.length} sounds</p>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="border-t border-white/6 p-2.5 flex gap-2">
+                                <input
+                                    value={newName}
+                                    onChange={e => setNewName(e.target.value)}
+                                    onKeyDown={e => e.key === "Enter" && createBoard()}
+                                    placeholder="New soundboard…"
+                                    maxLength={60}
+                                    className="flex-1 rounded-lg bg-white/6 border border-white/8 px-2.5 py-1.5 text-xs text-white placeholder-white/25 outline-none focus:border-orange-500/40"
+                                />
+                                <button
+                                    onClick={createBoard}
+                                    disabled={!newName.trim() || creating}
+                                    className="shrink-0 rounded-lg bg-orange-500 hover:bg-orange-400 disabled:opacity-40 p-1.5 transition-colors"
+                                >
+                                    {creating
+                                        ? <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
+                                        : <Plus className="h-3.5 w-3.5 text-white" />
+                                    }
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ── Sound card ────────────────────────────────────────────────────────────────
 export default function SoundCard({ s_id, slug, title, duration, tags, category, btnColor, stats }: SoundCardProps) {
     const [playing, setPlaying]   = useState(false);
     const [loading, setLoading]   = useState(false);
@@ -60,7 +316,6 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
         try {
             await audioRef.current.play();
             setPlaying(true);
-            // API param is slug-s_id so the route can look up by unique s_id
             fetch(`/api/sound/${slug}-${s_id}/play`, { method: "POST" }).catch(() => null);
         } catch {
             // autoplay blocked or network error
@@ -77,7 +332,7 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
                 ? "border-orange-500/40 shadow-lg shadow-orange-500/10"
                 : "border-white/7 hover:border-white/14"
         )}>
-            {/* Top row: sprite btn + title */}
+            {/* Top row: sprite btn + title + menu */}
             <div className="flex items-center gap-3 mini-btn">
                 <button
                     onClick={togglePlay}
@@ -103,6 +358,8 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
                         <span className="text-xs text-[#a1a1aa]">{duration}</span>
                     </div>
                 </div>
+
+                <CardMenu s_id={s_id} slug={slug} title={title} />
             </div>
 
             {/* Tags */}

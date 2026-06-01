@@ -39,12 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <link rel="preload" as="image" href="/btns.avif" type="image/avif" />
                 {/* Warm up CDN connection for audio files */}
                 {R2_ORIGIN && <link rel="dns-prefetch" href={R2_ORIGIN} />}
-                {/* Preconnect to AdSense/GTM origins — shaves ~200–400 ms off first ad load */}
-                <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossOrigin="anonymous" />
-                <link rel="preconnect" href="https://googletagservices.com"         crossOrigin="anonymous" />
-                <link rel="preconnect" href="https://googletagmanager.com"          crossOrigin="anonymous" />
-                <link rel="dns-prefetch" href="https://adservice.google.com" />
-                <link rel="dns-prefetch" href="https://tpc.googlesyndication.com" />
+                {/* Preconnect to GTM origin for Analytics */}
+                <link rel="preconnect" href="https://googletagmanager.com" crossOrigin="anonymous" />
                 {/* Google Analytics */}
                 <Script
                     src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
@@ -73,15 +69,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           `}
                 </Script>
 
-                {/* Google AdSense */}
-                {process.env.NEXT_PUBLIC_GOOGLE_AD_CLIENT && (
-                    <Script
-                        async
-                        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_GOOGLE_AD_CLIENT}`}
-                        crossOrigin="anonymous"
-                        strategy="afterInteractive"
-                    />
-                )}
             </head>
             <body className="min-h-screen bg-[#0a0a0a] text-white antialiased flex flex-col">
                 <SessionProvider>{children}</SessionProvider>

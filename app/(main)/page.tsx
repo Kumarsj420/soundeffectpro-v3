@@ -161,6 +161,7 @@ export default async function HomePage() {
                         <Link
                             key={cat.slug}
                             href={cat.href}
+                            prefetch={cat.href.startsWith("/search") ? false : undefined}
                             className="group flex flex-col items-center gap-1.5 rounded-2xl border border-white/7 bg-[#111113] hover:border-white/14 hover:bg-[#18181b] p-3 transition-all hover:-translate-y-0.5"
                         >
                             <span className="text-2xl">{cat.emoji}</span>
@@ -268,6 +269,7 @@ function Section({
                 {href && (
                     <Link
                         href={href}
+                        prefetch={href.startsWith("/search") ? false : undefined}
                         className="flex items-center gap-1 text-sm text-[#71717a] hover:text-orange-400 transition-colors"
                     >
                         View all <ArrowRight className="h-3.5 w-3.5" />

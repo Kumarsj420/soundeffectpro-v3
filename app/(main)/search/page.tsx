@@ -186,6 +186,7 @@ export default async function SearchPage({
                         <Link
                             key={opt.value}
                             href={`/search?q=${encodeURIComponent(query)}&sort=${opt.value}`}
+                            prefetch={false}
                             className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
                                 sort === opt.value
                                     ? 'bg-orange-500 text-white'
@@ -248,13 +249,13 @@ export default async function SearchPage({
             {totalPages > 1 && (
                 <div className="flex justify-center gap-2 mt-10">
                     {pageNum > 1 && (
-                        <Link href={`/search?q=${encodeURIComponent(query)}&sort=${sort}&page=${pageNum - 1}`} className="px-4 py-2 rounded-full border border-white/10 hover:border-white/30 text-sm transition-colors">
+                        <Link href={`/search?q=${encodeURIComponent(query)}&sort=${sort}&page=${pageNum - 1}`} prefetch={false} className="px-4 py-2 rounded-full border border-white/10 hover:border-white/30 text-sm transition-colors">
                             ← Previous
                         </Link>
                     )}
                     <span className="px-4 py-2 text-sm text-white/50">Page {pageNum} of {totalPages}</span>
                     {pageNum < totalPages && (
-                        <Link href={`/search?q=${encodeURIComponent(query)}&sort=${sort}&page=${pageNum + 1}`} className="px-4 py-2 rounded-full border border-white/10 hover:border-white/30 text-sm transition-colors">
+                        <Link href={`/search?q=${encodeURIComponent(query)}&sort=${sort}&page=${pageNum + 1}`} prefetch={false} className="px-4 py-2 rounded-full border border-white/10 hover:border-white/30 text-sm transition-colors">
                             Next →
                         </Link>
                     )}

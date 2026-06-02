@@ -369,6 +369,7 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
                         <Link
                             key={tag}
                             href={`/search?q=${encodeURIComponent(tag)}`}
+                            prefetch={false}
                             className="text-xs text-[#a1a1aa] bg-white/4 hover:bg-orange-500/15 hover:text-orange-400 rounded-full px-2 py-0.5 transition-colors"
                         >
                             #{tag}

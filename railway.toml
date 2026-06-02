@@ -1,4 +1,4 @@
 [deploy]
-startCommand = "NODE_OPTIONS='--max-old-space-size=512' node .next/standalone/server.js"
+startCommand = "HOSTNAME=0.0.0.0 NODE_OPTIONS=--max-old-space-size=512 node .next/standalone/server.js"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3

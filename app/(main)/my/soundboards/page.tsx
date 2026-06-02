@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import type { Metadata } from "next";
 import MySoundboards from "./MySoundboards";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
     title: "My Soundboards — SoundEffectPro",
     robots: { index: false, follow: false },

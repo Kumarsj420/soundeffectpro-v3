@@ -3,6 +3,8 @@ import { connectDB } from "@/app/lib/db";
 import Soundboard from "@/app/lib/models/Soundboard";
 import File from "@/app/lib/models/File";
 
+export const dynamic = "force-dynamic";
+
 const MAX_SOUNDS = 30;
 
 // ── GET /api/soundboard/[sbId] — fetch a board (public or owned) ─────────────

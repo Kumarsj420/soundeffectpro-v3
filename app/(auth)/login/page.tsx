@@ -5,6 +5,8 @@ import type { Metadata } from "next";
 import Logo from "@/app/components/Logo";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
     title: "Sign In",
     description: "Sign in to SoundEffectPro to upload sounds, save favorites, and build soundboards.",

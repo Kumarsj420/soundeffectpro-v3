@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+    output: "standalone",
     serverExternalPackages: ["node-id3", "fluent-ffmpeg", "ffmpeg-static", "archiver"],
     images: {
         remotePatterns: [

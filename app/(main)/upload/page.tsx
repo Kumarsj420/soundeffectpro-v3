@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import UploadForm from "@/app/components/UploadForm";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
     title: "Upload Sound Effect",
     description: "Upload your meme sound effects and viral audio clips to SoundEffectPro.",

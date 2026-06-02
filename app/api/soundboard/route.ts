@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { connectDB } from "@/app/lib/db";
 import Soundboard from "@/app/lib/models/Soundboard";
 
+export const dynamic = "force-dynamic";
+
 const MAX_BOARDS = 10;
 
 // ── GET /api/soundboard — list current user's soundboards ────────────────────

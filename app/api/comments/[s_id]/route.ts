@@ -3,6 +3,8 @@ import { connectDB } from "@/app/lib/db";
 import Comment from "@/app/lib/models/Comment";
 import { containsBannedWord } from "@/app/lib/bannedWords";
 
+export const dynamic = "force-dynamic";
+
 const PAGE_SIZE = 20;
 
 // ── GET /api/comments/[s_id]?page=1 ────────────────────────────────────────

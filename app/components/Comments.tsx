@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import Image from "next/image";
-import { MessageCircle, Trash2, Send, Loader2 } from "lucide-react";
+import { MessageCircle, Trash2, Send, Loader2, ChevronDown } from "lucide-react";
 
 interface Comment {
     id:        string;
@@ -118,18 +118,26 @@ export default function Comments({ s_id }: { s_id: string }) {
         }
     }
 
+    const [open, setOpen] = useState(true);
     const isAdmin = session?.user.role === "admin" || session?.user.role === "moderator";
 
     return (
         <section className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-white/50" />
-                <h2 className="font-semibold text-white/80">
-                    Comments {data ? <span className="text-white/40 font-normal text-sm">({data.total})</span> : null}
-                </h2>
-            </div>
+            {/* Header — accordion toggle */}
+            <button
+                onClick={() => setOpen(o => !o)}
+                className="flex items-center justify-between w-full group"
+            >
+                <div className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-white/50" />
+                    <h2 className="font-semibold text-white/80">
+                        Comments {data ? <span className="text-white/40 font-normal text-sm">({data.total})</span> : null}
+                    </h2>
+                </div>
+                <ChevronDown className={`h-4 w-4 text-white/40 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+            </button>
 
+            {open && (<>
             {/* Post form */}
             {session ? (
                 <form onSubmit={submit} className="space-y-2">
@@ -221,6 +229,7 @@ export default function Comments({ s_id }: { s_id: string }) {
                     {loading ? "Loading…" : `Load more (${data.total - data.comments.length} remaining)`}
                 </button>
             )}
+            </>)}
         </section>
     );
 }

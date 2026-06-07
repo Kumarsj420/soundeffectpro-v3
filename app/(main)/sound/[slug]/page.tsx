@@ -4,8 +4,8 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import AudioPlayer from "@/app/components/AudioPlayer";
-import SoundCard from "@/app/components/SoundCard";
 import ReportButton from "@/app/components/ReportButton";
+import RelatedSounds from "@/app/components/RelatedSounds";
 import AdBanner from "@/app/components/AdBanner";
 import ShareButton from "@/app/components/ShareButton";
 import Comments from "@/app/components/Comments";
@@ -183,18 +183,22 @@ export default async function SoundPage({
     const categorySlug = category.toLowerCase();
     const canonicalUrl = `${BASE}/sound/${canonical}`;
 
-    const related = await File.find({
+    const relatedFilter = {
         visibility: true,
         s_id: { $ne: sound.s_id },
         $or: [
             { category: sound.category },
-            { tags: { $in: sound.tags.slice(0, 3) } },
+            { tags: { $in: (sound.tags as string[]).slice(0, 3) } },
         ],
-    })
-        .sort({ "stats.views": -1 })
-        .limit(6)
-        .select("s_id slug title duration tags category btnColor stats")
-        .lean();
+    };
+    const [related, relatedTotal] = await Promise.all([
+        File.find(relatedFilter)
+            .sort({ "stats.views": -1 })
+            .limit(9)
+            .select("s_id slug title duration tags category btnColor stats")
+            .lean(),
+        File.countDocuments(relatedFilter),
+    ]);
 
     const s      = toPlainSound(sound as unknown as Record<string, unknown>);
     const stats  = (sound.stats as unknown as Record<string, number>) ?? {};
@@ -255,9 +259,7 @@ export default async function SoundPage({
                 <span className="text-white/70 truncate">{sound.title as string}</span>
             </nav>
 
-            <div className="grid lg:grid-cols-3 gap-6 lg:gap-8">
-                {/* ── Main column ── */}
-                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            <div className="space-y-4 sm:space-y-6">
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold mb-2">{sound.title as string} Sound Effect</h1>
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm text-white/40">
@@ -342,38 +344,31 @@ export default async function SoundPage({
                     <div className="rounded-2xl border border-white/8 bg-[#141414] p-5">
                         <Comments s_id={s.s_id} />
                     </div>
-                </div>
 
-                {/* ── Related sidebar — hidden on mobile when empty ── */}
-                <aside className={`space-y-3 ${related.length === 0 ? "hidden lg:block" : ""}`}>
-                    <h2 className="font-semibold text-white/80">Related Sounds</h2>
-                    {related.length > 0 ? (
-                        related.map((r) => (
-                            <SoundCard
-                                key={(r as { s_id: string }).s_id}
-                                {...toPlainSound(r as unknown as Record<string, unknown>)}
-                            />
-                        ))
-                    ) : (
-                        <p className="text-white/30 text-sm">No related sounds found.</p>
-                    )}
+                    {/* Related sounds — full-width grid below comments */}
+                    <RelatedSounds
+                        slug={canonical}
+                        category={category}
+                        tags={sound.tags as string[]}
+                        initial={related.map(r => toPlainSound(r as unknown as Record<string, unknown>))}
+                        total={relatedTotal}
+                    />
 
-                    {/* Ad: display rectangle in sidebar */}
+                    {/* Ad: display after related sounds */}
                     <AdBanner
                         type="display"
                         slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_DISPLAY ?? ""}
-                        format="rectangle"
-                        className="rounded-xl mt-2"
+                        format="horizontal"
+                        className="rounded-xl"
                     />
-                </aside>
-            </div>
 
-            {/* Ad: Multiplex at page bottom */}
-            <AdBanner
-                type="multiplex"
-                slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_MULTIPLEX ?? ""}
-                className="mt-4 sm:mt-8 rounded-xl"
-            />
+                    {/* Ad: Multiplex at page bottom */}
+                    <AdBanner
+                        type="multiplex"
+                        slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_MULTIPLEX ?? ""}
+                        className="rounded-xl"
+                    />
+            </div>
 
             {/* JSON-LD */}
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(audioLd) }} />

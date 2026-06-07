@@ -55,11 +55,11 @@ export default function RelatedSounds({ slug, category, tags, initial, total }: 
                 <button
                     onClick={loadMore}
                     disabled={loading}
-                    className="w-full py-3 rounded-xl border border-white/8 text-sm text-white/40 hover:text-white hover:border-white/20 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-sm font-semibold text-white transition-colors flex items-center justify-center gap-2"
                 >
                     {loading
                         ? <><Loader2 className="h-4 w-4 animate-spin" /> Loading…</>
-                        : `Load more (${total - sounds.length} remaining)`
+                        : "Load more"
                     }
                 </button>
             )}

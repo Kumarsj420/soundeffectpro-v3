@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import SoundCard from "@/app/components/SoundCard";
+import AdBanner from "@/app/components/AdBanner";
 
 interface Sound {
     s_id: string; slug: string; title: string; duration: string;
@@ -45,6 +46,7 @@ export default function LatestSounds({ initial, total }: { initial: Sound[]; tot
                     </button>
                 </div>
             )}
+            <AdBanner type="display" format="horizontal" slot={process.env.NEXT_PUBLIC_BELOW_LOAD_MORE ?? ""} />
         </div>
     );
 }

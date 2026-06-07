@@ -41,12 +41,10 @@ export default async function DownloadPage({
 
     if (!sound) notFound();
 
-    const canonical  = `${sound.slug}-${sound.s_id}`;
-    const audioUrl   = `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/store/${sound.s_id}.mp3`;
+    const canonical = `${sound.slug}-${sound.s_id}`;
 
     return (
         <div className="min-h-[60vh] mx-auto max-w-2xl px-4 py-10 flex flex-col gap-6">
-            {/* Back link */}
             <Link
                 href={`/sound/${canonical}`}
                 className="text-sm text-white/40 hover:text-white transition-colors self-start"
@@ -57,7 +55,6 @@ export default async function DownloadPage({
             <DownloadCountdown
                 slug={canonical}
                 title={sound.title as string}
-                audioUrl={audioUrl}
             />
         </div>
     );

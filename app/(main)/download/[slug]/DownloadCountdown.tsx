@@ -5,21 +5,21 @@ import { Download } from "lucide-react";
 import AdBanner from "@/app/components/AdBanner";
 
 interface Props {
-    slug:     string;
-    title:    string;
-    audioUrl: string;
+    slug:  string;
+    title: string;
 }
 
-export default function DownloadCountdown({ slug, title, audioUrl }: Props) {
+export default function DownloadCountdown({ slug, title }: Props) {
     const [count, setCount] = useState(5);
     const [started, setStarted] = useState(false);
 
     function triggerDownload() {
         if (started) return;
         setStarted(true);
-        fetch(`/api/sound/${slug}/download`, { method: "POST" }).catch(() => null);
+        // Server route fetches from R2, sets Content-Disposition: attachment,
+        // and increments the download counter — no client-side tracking needed.
         const a = document.createElement("a");
-        a.href = `${audioUrl}?dl=1`;
+        a.href = `/api/sound/${slug}/file`;
         a.download = `${title}.mp3`;
         document.body.appendChild(a);
         a.click();

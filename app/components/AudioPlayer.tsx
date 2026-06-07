@@ -39,7 +39,6 @@ export default function AudioPlayer({ s_id, slug, title, duration, btnColor = '0
     const [playing, setPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [downloaded, setDownloaded] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const didTrackPlay = useRef(false);
     const audioUrl = getR2Url(`store/${s_id}.mp3`) ?? '';
@@ -103,18 +102,8 @@ export default function AudioPlayer({ s_id, slug, title, duration, btnColor = '0
         setCurrentTime(t);
     }
 
-    async function handleDownload() {
-        const a = document.createElement("a");
-        a.href = `${audioUrl}?dl=1`;
-        a.download = `${slug}.mp3`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-
-        if (!downloaded) {
-            setDownloaded(true);
-            fetch(`/api/sound/${slug}/download`, { method: "POST" }).catch(() => null);
-        }
+    function handleDownload() {
+        window.open(`/download/${slug}`, "_blank", "noopener,noreferrer");
     }
 
     const progress = totalTime > 0 ? (currentTime / totalTime) * 100 : 0;

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import { CATEGORY_SLUGS, CATEGORIES } from "@/app/lib/constants";
-import SoundCard from "@/app/components/SoundCard";
 import AdBanner from "@/app/components/AdBanner";
+import CategorySounds from "@/app/components/CategorySounds";
 
 export const revalidate = 600;
 export const dynamicParams = false;
@@ -56,17 +56,15 @@ export default async function CategoryPage({
     searchParams,
 }: {
     params: Promise<{ category: string }>;
-    searchParams: Promise<{ sort?: string; page?: string }>;
+    searchParams: Promise<{ sort?: string }>;
 }) {
     const { category } = await params;
-    const { sort = 'popular', page = '1' } = await searchParams;
+    const { sort = 'popular' } = await searchParams;
 
     const cat = CATEGORY_SLUGS[category];
     if (!cat) notFound();
 
-    const pageNum = Math.max(1, parseInt(page, 10));
     const limit = 24;
-    const skip = (pageNum - 1) * limit;
 
     await connectDB();
 
@@ -80,14 +78,11 @@ export default async function CategoryPage({
     const [sounds, total] = await Promise.all([
         File.find({ visibility: true, category: cat })
             .sort(sortQuery)
-            .skip(skip)
             .limit(limit)
             .select('s_id slug title duration tags category btnColor stats')
             .lean(),
         File.countDocuments({ visibility: true, category: cat }),
     ]);
-
-    const totalPages = Math.ceil(total / limit);
 
     return (
         <div className="mx-auto max-w-7xl px-4 py-8">
@@ -133,48 +128,19 @@ export default async function CategoryPage({
                 className="rounded-xl mb-6"
             />
 
-            {/* Grid */}
+            {/* Grid with load more */}
             {sounds.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {sounds.slice(0, 8).map((s) => (
-                        <SoundCard key={(s as { s_id: string }).s_id} {...toPlainSound(s as unknown as Record<string, unknown>)} />
-                    ))}
-                    {/* Ad 2: In-feed after 8 cards — native blend */}
-                    {sounds.length > 8 && (
-                        <div className="sm:col-span-2 lg:col-span-3">
-                            <AdBanner
-                                type="in-feed"
-                                slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_IN_FEED ?? ""}
-                            />
-                        </div>
-                    )}
-                    {sounds.slice(8).map((s) => (
-                        <SoundCard key={(s as { s_id: string }).s_id} {...toPlainSound(s as unknown as Record<string, unknown>)} />
-                    ))}
-                </div>
+                <CategorySounds
+                    key={sort}
+                    initial={sounds.map(s => toPlainSound(s as unknown as Record<string, unknown>))}
+                    total={total}
+                    category={cat}
+                    sort={sort}
+                />
             ) : (
                 <div className="text-center py-20 text-white/30">
                     <p className="text-xl mb-2">No {cat} sounds yet</p>
                     <Link href="/upload" className="text-orange-400 hover:text-orange-300 text-sm">Be the first to upload one →</Link>
-                </div>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex justify-center gap-2 mt-10">
-                    {pageNum > 1 && (
-                        <Link href={`/sounds/${category}?sort=${sort}&page=${pageNum - 1}`} className="px-4 py-2 rounded-full border border-white/10 hover:border-white/30 text-sm transition-colors">
-                            ← Previous
-                        </Link>
-                    )}
-                    <span className="px-4 py-2 text-sm text-white/50">
-                        Page {pageNum} of {totalPages}
-                    </span>
-                    {pageNum < totalPages && (
-                        <Link href={`/sounds/${category}?sort=${sort}&page=${pageNum + 1}`} className="px-4 py-2 rounded-full border border-white/10 hover:border-white/30 text-sm transition-colors">
-                            Next →
-                        </Link>
-                    )}
                 </div>
             )}
 

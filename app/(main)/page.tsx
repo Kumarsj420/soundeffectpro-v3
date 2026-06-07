@@ -7,6 +7,7 @@ import SoundCard from "@/app/components/SoundCard";
 import { Badge } from "@/app/components/ui/badge";
 import { getWeekStart } from "@/app/lib/statsPeriod";
 import AdBanner from "@/app/components/AdBanner";
+import LatestSounds from "@/app/components/LatestSounds";
 
 export const revalidate = 300;
 
@@ -72,37 +73,36 @@ async function getData() {
     try {
         await connectDB();
     } catch {
-        return { trending: [], weekly: [], latest: [] };
+        return { trending: [], weekly: [], latest: [], latestTotal: 0 };
     }
 
     const base = { visibility: true };
 
     try {
-        const [trending, weekly, latest] = await Promise.all([
-            // trendScore is recomputed nightly — recency-weighted, not just all-time views
+        const [trending, weekly, latest, latestTotal] = await Promise.all([
             File.find(base).sort({ trendScore: -1 }).limit(12)
                 .select('s_id slug title duration tags category btnColor stats').lean(),
-
             File.find({ ...base, 'stats.weekly.periodStart': { $gte: getWeekStart() } })
                 .sort({ 'stats.weekly.views': -1 }).limit(8)
                 .select('s_id slug title duration tags category btnColor stats').lean(),
-
             File.find(base).sort({ createdAt: -1 }).limit(12)
                 .select('s_id slug title duration tags category btnColor stats').lean(),
+            File.countDocuments(base),
         ]);
 
         return {
             trending: trending.map(toPlain),
             weekly: weekly.length ? weekly.map(toPlain) : trending.slice(0, 8).map(toPlain),
             latest: latest.map(toPlain),
+            latestTotal,
         };
     } catch {
-        return { trending: [], weekly: [], latest: [] };
+        return { trending: [], weekly: [], latest: [], latestTotal: 0 };
     }
 }
 
 export default async function HomePage() {
-    const { trending, weekly, latest } = await getData();
+    const { trending, weekly, latest, latestTotal } = await getData();
 
     return (
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-8 sm:py-12 space-y-14 sm:space-y-16">
@@ -214,9 +214,8 @@ export default async function HomePage() {
             <Section
                 icon={<Sparkles className="h-5 w-5 text-violet-400" />}
                 title="Just Uploaded"
-                href="/search?sort=newest"
             >
-                <SoundGrid sounds={latest} />
+                <LatestSounds initial={latest} total={latestTotal} />
             </Section>
 
             {/* -- Ad 4: Multiplex grid before SEO block — highest RPM placement -- */}

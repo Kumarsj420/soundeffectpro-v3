@@ -4,9 +4,9 @@ import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import NotFound from "@/app/lib/models/NotFound";
 import SearchQuery from "@/app/lib/models/SearchQuery";
-import SoundCard from "@/app/components/SoundCard";
 import Link from "next/link";
 import AdBanner from "@/app/components/AdBanner";
+import SearchResults from "@/app/components/SearchResults";
 import { containsBannedWord } from "@/app/lib/bannedWords";
 import { searchSounds } from "@/app/lib/meilisearch";
 
@@ -52,13 +52,11 @@ function toPlainSound(doc: unknown) {
 export default async function SearchPage({
     searchParams,
 }: {
-    searchParams: Promise<{ q?: string; sort?: string; page?: string }>;
+    searchParams: Promise<{ q?: string; sort?: string }>;
 }) {
-    const { q = '', sort = 'relevant', page = '1' } = await searchParams;
+    const { q = '', sort = 'relevant' } = await searchParams;
     const query = q.trim();
-    const pageNum = Math.max(1, parseInt(page, 10));
     const limit = 20;
-    const skip = (pageNum - 1) * limit;
 
     // ── Banned word guard ─────────────────────────────────────────────────────
     // Redirect immediately — the word never appears in the URL or on the page.
@@ -72,7 +70,7 @@ export default async function SearchPage({
     if (query) {
         // ── Try Meilisearch first ─────────────────────────────────────────
         const meili = await searchSounds(query, {
-            page: pageNum, limit, sort: sort as "relevant" | "popular" | "newest",
+            page: 1, limit, sort: sort as "relevant" | "popular" | "newest",
         }).catch(() => null);
 
         if (meili) {
@@ -105,7 +103,6 @@ export default async function SearchPage({
                             ? { "stats.views": -1 }
                             : { createdAt: -1 }
                     )
-                    .skip(skip)
                     .limit(limit)
                     .select("s_id slug title duration tags category btnColor stats")
                     .lean(),
@@ -217,25 +214,13 @@ export default async function SearchPage({
 
             {sounds.length > 0 && (
                 <>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                        {sounds.slice(0, 6).map((s) => (
-                            <SoundCard key={s.s_id as string} {...toPlainSound(s)} />
-                        ))}
-                        {/* Ad: In-feed after 6 results — native blend mid-results */}
-                        {sounds.length > 6 && (
-                            <div className="sm:col-span-2 lg:col-span-3">
-                                <AdBanner
-                                    type="in-feed"
-                                    slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_IN_FEED ?? ""}
-                                />
-                            </div>
-                        )}
-                        {sounds.slice(6).map((s) => (
-                            <SoundCard key={s.s_id as string} {...toPlainSound(s)} />
-                        ))}
-                    </div>
-
-                    {/* Ad: Display leaderboard after all results */}
+                    <SearchResults
+                        key={query + sort}
+                        initial={sounds.map(toPlainSound)}
+                        total={total}
+                        query={query}
+                        sort={sort}
+                    />
                     <AdBanner
                         type="display"
                         slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_DISPLAY ?? ""}
@@ -243,23 +228,6 @@ export default async function SearchPage({
                         className="rounded-xl mt-6"
                     />
                 </>
-            )}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex justify-center gap-2 mt-10">
-                    {pageNum > 1 && (
-                        <Link href={`/search?q=${encodeURIComponent(query)}&sort=${sort}&page=${pageNum - 1}`} prefetch={false} className="px-4 py-2 rounded-full border border-white/10 hover:border-white/30 text-sm transition-colors">
-                            ← Previous
-                        </Link>
-                    )}
-                    <span className="px-4 py-2 text-sm text-white/50">Page {pageNum} of {totalPages}</span>
-                    {pageNum < totalPages && (
-                        <Link href={`/search?q=${encodeURIComponent(query)}&sort=${sort}&page=${pageNum + 1}`} prefetch={false} className="px-4 py-2 rounded-full border border-white/10 hover:border-white/30 text-sm transition-colors">
-                            Next →
-                        </Link>
-                    )}
-                </div>
             )}
 
             {/* No query state */}

@@ -18,7 +18,8 @@ export async function POST(
         // before incrementing downloads — same fix as play/route.ts.
         await File.findOneAndUpdate(
             { s_id, visibility: true },
-            buildDownloadPipeline()
+            buildDownloadPipeline(),
+            { updatePipeline: true }
         );
 
         return Response.json({ ok: true });

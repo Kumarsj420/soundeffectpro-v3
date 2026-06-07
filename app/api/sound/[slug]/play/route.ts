@@ -19,7 +19,8 @@ export async function POST(
         // where period counters never reset and accumulated as all-time totals.
         await File.findOneAndUpdate(
             { s_id, visibility: true },
-            buildViewPipeline()
+            buildViewPipeline(),
+            { updatePipeline: true }
         );
 
         return Response.json({ ok: true });

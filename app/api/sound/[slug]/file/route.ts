@@ -23,7 +23,7 @@ export async function GET(
         if (!sound) return new Response("Not found", { status: 404 });
 
         // Fire-and-forget tracking so it doesn't block the download
-        File.findOneAndUpdate({ s_id, visibility: true }, buildDownloadPipeline()).catch(() => null);
+        File.findOneAndUpdate({ s_id, visibility: true }, buildDownloadPipeline(), { updatePipeline: true }).catch(() => null);
 
         const r2Url = `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/store/${s_id}.mp3`;
         const r2Res = await fetch(r2Url);

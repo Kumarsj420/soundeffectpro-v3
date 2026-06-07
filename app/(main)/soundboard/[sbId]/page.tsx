@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { connectDB } from "@/app/lib/db";
 import Soundboard from "@/app/lib/models/Soundboard";
+import SbModel from "@/app/lib/models/Sb";
 import File from "@/app/lib/models/File";
 import SoundCard from "@/app/components/SoundCard";
 import Link from "next/link";
@@ -67,17 +68,17 @@ export default async function SoundboardPage({
     const isOwner = session?.user.uid === board.userId;
     if (!board.isPublic && !isOwner) notFound();
 
-    const sounds = board.sounds.length
-        ? await File.find({ s_id: { $in: board.sounds }, visibility: true })
+    const links   = await SbModel.find({ sb_id: sbId }).sort({ createdAt: 1 }).lean();
+    const s_ids   = links.map(l => l.s_id);
+
+    const sounds = s_ids.length
+        ? await File.find({ s_id: { $in: s_ids }, visibility: true })
             .select("s_id slug title duration tags category btnColor stats")
             .lean()
         : [];
 
-    // Preserve board ordering
     const soundMap = new Map(sounds.map(s => [s.s_id, s]));
-    const ordered  = board.sounds
-        .map(id => soundMap.get(id))
-        .filter(Boolean) as typeof sounds;
+    const ordered  = s_ids.map(id => soundMap.get(id)).filter(Boolean) as typeof sounds;
 
     const shareUrl = `${BASE}/soundboard/${sbId}`;
 

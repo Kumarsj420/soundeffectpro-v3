@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { connectDB } from "@/app/lib/db";
 import Soundboard from "@/app/lib/models/Soundboard";
+import SbModel from "@/app/lib/models/Sb";
 import File from "@/app/lib/models/File";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,6 @@ export async function GET(
     { params }: { params: Promise<{ sbId: string }> }
 ) {
     const { sbId } = await params;
-
     try {
         const session = await auth().catch(() => null);
         await connectDB();
@@ -21,26 +21,28 @@ export async function GET(
         const board = await Soundboard.findOne({ sbId }).lean();
         if (!board) return Response.json({ error: "Not found" }, { status: 404 });
 
-        // Only owner can see private boards
         const isOwner = session?.user.uid === board.userId;
         if (!board.isPublic && !isOwner) {
             return Response.json({ error: "Private board" }, { status: 403 });
         }
 
-        // Fetch sound details
-        const sounds = board.sounds.length
-            ? await File.find({ s_id: { $in: board.sounds }, visibility: true })
+        // Get ordered sound IDs from Sb collection
+        const links  = await SbModel.find({ sb_id: sbId }).sort({ createdAt: 1 }).lean();
+        const s_ids  = links.map(l => l.s_id);
+
+        const soundDocs = s_ids.length
+            ? await File.find({ s_id: { $in: s_ids }, visibility: true })
                 .select("s_id slug title duration category btnColor stats")
                 .lean()
             : [];
 
-        // Preserve board ordering
-        const soundMap = new Map(sounds.map(s => [s.s_id, s]));
-        const ordered  = board.sounds.map(id => soundMap.get(id)).filter(Boolean);
+        const soundMap = new Map(soundDocs.map(s => [s.s_id, s]));
+        const ordered  = s_ids.map(id => soundMap.get(id)).filter(Boolean);
 
         return Response.json({
             sbId:      board.sbId,
             name:      board.name,
+            thumbnail: board.thumbnail ?? "",
             isPublic:  board.isPublic,
             isOwner,
             sounds:    ordered,
@@ -50,7 +52,7 @@ export async function GET(
     }
 }
 
-// ── PATCH /api/soundboard/[sbId] — add/remove sound, rename, toggle public ──
+// ── PATCH /api/soundboard/[sbId] — add/remove sound, rename, toggle public ───
 export async function PATCH(
     req: Request,
     { params }: { params: Promise<{ sbId: string }> }
@@ -60,11 +62,10 @@ export async function PATCH(
         if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
         const { sbId } = await params;
-        const body     = await req.json() as {
-            action?: "add" | "remove" | "reorder";
-            s_id?:   string;
-            sounds?:  string[];
-            name?:   string;
+        const body = await req.json() as {
+            action?:   "add" | "remove";
+            s_id?:     string;
+            name?:     string;
             isPublic?: boolean;
         };
 
@@ -73,23 +74,19 @@ export async function PATCH(
         if (!board) return Response.json({ error: "Not found or not yours" }, { status: 404 });
 
         if (body.action === "add" && body.s_id) {
-            if (board.sounds.includes(body.s_id)) {
-                return Response.json({ error: "Already in board" }, { status: 409 });
-            }
-            if (board.sounds.length >= MAX_SOUNDS) {
+            const count = await SbModel.countDocuments({ sb_id: sbId });
+            if (count >= MAX_SOUNDS) {
                 return Response.json({ error: `Max ${MAX_SOUNDS} sounds per board` }, { status: 429 });
             }
-            board.sounds.push(body.s_id);
+            await SbModel.updateOne(
+                { sb_id: sbId, s_id: body.s_id },
+                { $setOnInsert: { sb_id: sbId, s_id: body.s_id } },
+                { upsert: true }
+            );
         }
 
         if (body.action === "remove" && body.s_id) {
-            board.sounds = board.sounds.filter((id: string) => id !== body.s_id);
-        }
-
-        if (body.action === "reorder" && Array.isArray(body.sounds)) {
-            // Ensure only existing sounds survive reorder
-            const allowed = new Set(board.sounds);
-            board.sounds  = body.sounds.filter((id: string) => allowed.has(id));
+            await SbModel.deleteOne({ sb_id: sbId, s_id: body.s_id });
         }
 
         if (typeof body.name === "string") {
@@ -100,13 +97,18 @@ export async function PATCH(
             board.name = trimmed;
         }
 
-        if (typeof body.isPublic === "boolean") {
-            board.isPublic = body.isPublic;
-        }
+        if (typeof body.isPublic === "boolean") board.isPublic = body.isPublic;
 
         await board.save();
-        return Response.json({ ok: true, sounds: board.sounds, name: board.name, isPublic: board.isPublic });
 
+        const links = await SbModel.find({ sb_id: sbId }).select("s_id").lean();
+
+        return Response.json({
+            ok:       true,
+            sounds:   links.map(l => l.s_id),
+            name:     board.name,
+            isPublic: board.isPublic,
+        });
     } catch {
         return Response.json({ error: "Server error" }, { status: 500 });
     }
@@ -128,6 +130,9 @@ export async function DELETE(
         if (result.deletedCount === 0) {
             return Response.json({ error: "Not found or not yours" }, { status: 404 });
         }
+
+        // Clean up all sound links for this board
+        await SbModel.deleteMany({ sb_id: sbId });
 
         return Response.json({ ok: true });
     } catch {

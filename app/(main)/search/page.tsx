@@ -4,10 +4,14 @@ import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import NotFound from "@/app/lib/models/NotFound";
 import SearchQuery from "@/app/lib/models/SearchQuery";
+import Soundboard from "@/app/lib/models/Soundboard";
+import SbModel from "@/app/lib/models/Sb";
 import Link from "next/link";
+import Image from "next/image";
 import SearchResults from "@/app/components/SearchResults";
 import { containsBannedWord } from "@/app/lib/bannedWords";
 import { searchSounds } from "@/app/lib/meilisearch";
+import { LayoutGrid, Music } from "lucide-react";
 
 export const revalidate = 60;
 
@@ -65,6 +69,7 @@ export default async function SearchPage({
 
     let sounds: Record<string, unknown>[] = [];
     let total = 0;
+    let soundboards: { sbId: string; name: string; thumbnail: string; soundCount: number }[] = [];
 
     if (query) {
         // ── Try Meilisearch first ─────────────────────────────────────────
@@ -127,6 +132,31 @@ export default async function SearchPage({
                 { $inc: { count: 1 } },
                 { upsert: true }
             ).catch(() => null);
+        }
+
+        // ── Soundboard search ─────────────────────────────────────────────
+        if (query.length >= 2) {
+            const sbDocs = await Soundboard.find({
+                isPublic:  true,
+                thumbnail: { $exists: true, $nin: ["", null] },
+                $text:     { $search: query },
+            })
+                .limit(4)
+                .select("sbId name thumbnail")
+                .lean()
+                .catch(() => []);
+
+            if (sbDocs.length) {
+                const sbIds  = sbDocs.map(b => b.sbId);
+                const counts = await SbModel.aggregate([
+                    { $match: { sb_id: { $in: sbIds } } },
+                    { $group: { _id: "$sb_id", count: { $sum: 1 } } },
+                ]).catch(() => []);
+                const countMap = new Map(counts.map((c: { _id: string; count: number }) => [c._id, c.count]));
+                soundboards = sbDocs
+                    .map(b => ({ sbId: b.sbId, name: b.name, thumbnail: b.thumbnail, soundCount: countMap.get(b.sbId) ?? 0 }))
+                    .filter(b => b.soundCount > 0);
+            }
         }
     }
 
@@ -212,15 +242,42 @@ export default async function SearchPage({
             )}
 
             {sounds.length > 0 && (
-                <>
-                    <SearchResults
-                        key={query + sort}
-                        initial={sounds.map(toPlainSound)}
-                        total={total}
-                        query={query}
-                        sort={sort}
-                    />
-                </>
+                <SearchResults
+                    key={query + sort}
+                    initial={sounds.map(toPlainSound)}
+                    total={total}
+                    query={query}
+                    sort={sort}
+                />
+            )}
+
+            {/* Soundboard results */}
+            {soundboards.length > 0 && (
+                <div className="mt-10 space-y-4">
+                    <div className="flex items-center gap-2">
+                        <LayoutGrid className="h-5 w-5 text-orange-400" />
+                        <h2 className="font-semibold text-white/80">Soundboards</h2>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                        {soundboards.map(b => (
+                            <Link
+                                key={b.sbId}
+                                href={`/soundboard/${b.sbId}`}
+                                className="group rounded-2xl border border-white/8 bg-[#111113] overflow-hidden hover:border-white/16 hover:-translate-y-0.5 transition-all duration-200"
+                            >
+                                <div className="relative aspect-video bg-white/4">
+                                    <Image src={b.thumbnail} alt={b.name} fill className="object-cover" sizes="25vw" />
+                                    <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white/80">
+                                        <Music className="h-3 w-3" />{b.soundCount}
+                                    </div>
+                                </div>
+                                <div className="p-3">
+                                    <p className="font-semibold text-sm truncate group-hover:text-orange-400 transition-colors">{b.name}</p>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
             )}
 
             {/* No query state */}

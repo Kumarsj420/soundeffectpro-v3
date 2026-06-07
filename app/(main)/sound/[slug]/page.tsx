@@ -280,7 +280,15 @@ export default async function SoundPage({
                         license={sound.license as string}
                     />
 
-                    {/* Ad: in-article — just below player */}
+                    {/* Actions — directly below player */}
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <LikeButton urlParam={canonical} likes={likes} />
+                        <ShareButton title={sound.title as string} url={canonicalUrl} />
+                        <AddToSoundboard s_id={s.s_id} />
+                        <ReportButton slug={canonical} />
+                    </div>
+
+                    {/* Ad: in-article */}
                     <AdBanner
                         type="in-article"
                         slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_IN_ARTICLE ?? ""}
@@ -311,14 +319,6 @@ export default async function SoundPage({
                             </div>
                         </div>
                     )}
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-3 flex-wrap">
-                        <LikeButton urlParam={canonical} likes={likes} />
-                        <ShareButton title={sound.title as string} url={canonicalUrl} />
-                        <AddToSoundboard s_id={s.s_id} />
-                        <ReportButton slug={canonical} />
-                    </div>
 
                     {/* Creator */}
                     {(sound.user as { name?: string })?.name && (

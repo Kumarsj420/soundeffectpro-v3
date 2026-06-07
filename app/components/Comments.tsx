@@ -39,12 +39,12 @@ function CommentAvatar({ image, name }: { image: string | null; name: string }) 
         return (
             <Image
                 src={image} alt={name} width={36} height={36}
-                className="rounded-full object-cover shrink-0"
+                className="rounded-full object-cover shrink-0 w-9 h-9"
             />
         );
     }
     return (
-        <div className="h-9 w-9 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 text-sm font-bold shrink-0">
+        <div className="h-9 w-9 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400 text-sm font-bold shrink-0 aspect-square">
             {name[0]?.toUpperCase() ?? "?"}
         </div>
     );
@@ -194,7 +194,7 @@ export default function Comments({ s_id }: { s_id: string }) {
                                     <span className="text-sm font-semibold text-white/80">{c.userName}</span>
                                     <span className="text-xs text-white/30">{timeAgo(c.createdAt)}</span>
                                 </div>
-                                <p className="text-sm text-white/60 mt-1 break-words leading-relaxed">{c.text}</p>
+                                <p className="text-sm text-white/60 mt-1 wrap-break-word leading-relaxed">{c.text}</p>
                             </div>
                             {/* Delete — own comment or mod */}
                             {(session?.user.uid === c.userId || isAdmin) && (

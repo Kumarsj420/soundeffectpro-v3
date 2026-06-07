@@ -7,6 +7,7 @@ import SoundCard from "@/app/components/SoundCard";
 import { Badge } from "@/app/components/ui/badge";
 import { getWeekStart } from "@/app/lib/statsPeriod";
 import LatestSounds from "@/app/components/LatestSounds";
+import AdBanner from "@/app/components/AdBanner";
 
 export const revalidate = 300;
 
@@ -195,6 +196,13 @@ export default async function HomePage() {
             >
                 <SoundGrid sounds={trending} />
             </Section>
+
+            <AdBanner
+                type="display"
+                format="horizontal"
+                slot={process.env.NEXT_PUBLIC_BETWEEN_SECTIONS_HOME_PAGE ?? ""}
+                className="rounded-xl"
+            />
 
             {/* -- This Week -- */}
             <Section

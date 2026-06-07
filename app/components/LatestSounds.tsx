@@ -30,10 +30,19 @@ export default function LatestSounds({ initial, total }: { initial: Sound[]; tot
         setLoading(false);
     }
 
+    const first8 = sounds.slice(0, 8);
+    const rest   = sounds.slice(8);
+
     return (
         <div className="space-y-6">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {sounds.map(s => <SoundCard key={s.s_id} {...s} />)}
+                {first8.map(s => <SoundCard key={s.s_id} {...s} />)}
+                {rest.length > 0 && (
+                    <div className="sm:col-span-2 lg:col-span-3">
+                        <AdBanner type="in-feed" slot={process.env.NEXT_PUBLIC_IN_FEED_SOUND_CARD_GRID ?? ""} />
+                    </div>
+                )}
+                {rest.map(s => <SoundCard key={s.s_id} {...s} />)}
             </div>
             {hasMore && (
                 <div className="flex justify-center">

@@ -47,6 +47,11 @@ export default function CategorySounds({ initial, total, category, sort }: Props
         <div className="space-y-6">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {first8.map(s => <SoundCard key={s.s_id} {...s} />)}
+                {rest.length > 0 && (
+                    <div className="sm:col-span-2 lg:col-span-3">
+                        <AdBanner type="in-feed" slot={process.env.NEXT_PUBLIC_IN_FEED_SOUND_CARD_GRID ?? ""} />
+                    </div>
+                )}
                 {rest.map(s => <SoundCard key={s.s_id} {...s} />)}
             </div>
             {hasMore && (

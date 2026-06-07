@@ -2,6 +2,7 @@ import Script from "next/script";
 import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import MobileBottomNav from "@/app/components/MobileBottomNav";
+import AdBanner from "@/app/components/AdBanner";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -21,6 +22,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 </>
             )}
             <Navbar />
+            {/* Below-header leaderboard — visible on every main site page */}
+            <AdBanner
+                type="display"
+                slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_HEADER ?? ""}
+                format="auto"
+                className="border-b border-white/5"
+            />
             {/* pb-16 on mobile leaves room above the fixed bottom nav */}
             <main className="flex-1 pb-16 sm:pb-0">{children}</main>
             {/* Footer only shown on desktop — bottom nav replaces it on mobile */}

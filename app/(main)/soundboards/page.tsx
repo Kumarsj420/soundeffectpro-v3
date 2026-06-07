@@ -46,10 +46,14 @@ async function getBoards() {
 
         const countMap = new Map(counts.map(c => [c._id, c.count as number]));
 
-        // Only boards that actually have sounds
+        // Only boards that have sounds AND a valid absolute URL as thumbnail
+        function isValidUrl(str: string) {
+            try { return Boolean(new URL(str)); } catch { return false; }
+        }
+
         return boards
             .map(b => ({ ...b, soundCount: countMap.get(b.sbId) ?? 0 }))
-            .filter(b => b.soundCount > 0);
+            .filter(b => b.soundCount > 0 && isValidUrl(b.thumbnail));
     } catch {
         return [];
     }

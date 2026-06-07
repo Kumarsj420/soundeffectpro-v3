@@ -194,7 +194,7 @@ export default async function SoundPage({
     const [related, relatedTotal] = await Promise.all([
         File.find(relatedFilter)
             .sort({ "stats.views": -1 })
-            .limit(9)
+            .limit(12)
             .select("s_id slug title duration tags category btnColor stats")
             .lean(),
         File.countDocuments(relatedFilter),

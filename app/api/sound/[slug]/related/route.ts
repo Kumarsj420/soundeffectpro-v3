@@ -16,7 +16,7 @@ export async function GET(
     const page     = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
     const category = searchParams.get("category") ?? "";
     const tags     = searchParams.get("tags")?.split(",").filter(Boolean) ?? [];
-    const limit    = 9;
+    const limit    = 12;
     const skip     = (page - 1) * limit;
 
     await connectDB();

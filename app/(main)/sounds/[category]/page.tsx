@@ -7,6 +7,8 @@ import { CATEGORY_SLUGS, CATEGORIES } from "@/app/lib/constants";
 import AdBanner from "@/app/components/AdBanner";
 import CategorySounds from "@/app/components/CategorySounds";
 
+const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "");
+
 export const revalidate = 600;
 export const dynamicParams = false;
 
@@ -24,14 +26,35 @@ export async function generateMetadata({
     if (!cat) return { title: "Not Found" };
 
     return {
-        title: `${cat} Sound Effects`,
-        description: `Browse and play the best ${cat.toLowerCase()} sound effects, meme sounds, and viral audio clips. Free to play and download.`,
-        keywords: [`${cat} sounds`, `${cat} sound effects`, `${cat} meme sounds`, 'free sounds'],
-        alternates: { canonical: `/sounds/${category}` },
+        title: `Free ${cat} Sound Effects — Download MP3 for YouTube & TikTok`,
+        description: `Download free ${cat.toLowerCase()} sound effects — royalty-free MP3s for YouTube, TikTok, Twitch, Discord, and meme content. ${cat} sounds updated daily, no copyright, instant download.`,
+        keywords: [
+            `${cat} sound effects`,
+            `${cat} sounds free download`,
+            `${cat} MP3 download`,
+            `${cat} sounds for YouTube`,
+            `${cat} sounds for TikTok`,
+            `free ${cat} sound effects`,
+            `royalty free ${cat} sounds`,
+            `${cat} meme sounds`,
+            `no copyright ${cat} sounds`,
+            "free sound effects download",
+            "royalty free sound effects",
+            "YouTube sound effects",
+            "TikTok sounds",
+        ],
+        alternates: { canonical: `${BASE}/sounds/${category}` },
         openGraph: {
-            title: `${cat} Sound Effects — SoundEffectPro`,
-            description: `Discover the best ${cat.toLowerCase()} sounds and audio clips.`,
-            url: `/sounds/${category}`,
+            title: `Free ${cat} Sound Effects — SoundEffectPro`,
+            description: `Download free ${cat.toLowerCase()} sound effects — royalty-free MP3s for YouTube, TikTok, Twitch, and Discord.`,
+            url: `${BASE}/sounds/${category}`,
+            type: "website",
+            siteName: "SoundEffectPro",
+        },
+        twitter: {
+            card: "summary_large_image",
+            title: `Free ${cat} Sound Effects`,
+            description: `Download free ${cat.toLowerCase()} sound effects — royalty-free MP3 for YouTube, TikTok & Discord.`,
         },
     };
 }
@@ -84,8 +107,34 @@ export default async function CategoryPage({
         File.countDocuments({ visibility: true, category: cat }),
     ]);
 
+    const breadcrumbLd = {
+        "@context": "https://schema.org",
+        "@type":    "BreadcrumbList",
+        itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home",               item: BASE },
+            { "@type": "ListItem", position: 2, name: `${cat} Sound Effects`, item: `${BASE}/sounds/${category}` },
+        ],
+    };
+
+    const itemListLd = {
+        "@context": "https://schema.org",
+        "@type":    "ItemList",
+        name:       `Top ${cat} Sound Effects`,
+        description: `Best free ${cat.toLowerCase()} sound effects on SoundEffectPro`,
+        url:        `${BASE}/sounds/${category}`,
+        numberOfItems: total,
+        itemListElement: sounds.slice(0, 6).map((s, i) => ({
+            "@type":    "ListItem",
+            position:  i + 1,
+            url:       `${BASE}/sound/${(s as { slug: string; s_id: string }).slug}-${(s as { slug: string; s_id: string }).s_id}`,
+            name:      `${(s as { title: string }).title} Sound Effect`,
+        })),
+    };
+
     return (
         <div className="mx-auto max-w-7xl px-4 py-8">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
             {/* Header */}
             <div className="mb-8">
                 <nav aria-label="Breadcrumb" className="text-sm text-white/40 mb-3 flex items-center gap-1.5">

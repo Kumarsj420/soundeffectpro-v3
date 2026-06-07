@@ -5,6 +5,7 @@ import { Calendar, Globe, Mail } from "lucide-react";
 export const metadata: Metadata = {
     title: "Content Policy",
     description: "Community guidelines and content rules for SoundEffectPro.",
+    alternates: { canonical: "/content-policy" },
 };
 
 export default function ContentPolicyPage() {

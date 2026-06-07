@@ -12,7 +12,7 @@ export const metadata: Metadata = {
         template: "%s | SoundEffectPro",
     },
     description: "Discover, play, and download the best meme sound effects, viral audio clips, and trending sounds. Free sound effects for gaming, anime, TikTok, and more.",
-    keywords: ["sound effects", "meme sounds", "viral audio", "free sound effects", "meme soundboard"],
+    keywords: ["free sound effects", "meme sounds", "royalty free sound effects", "no copyright sounds", "sound effects download", "YouTube sound effects", "TikTok sounds", "Discord soundboard", "gaming sounds", "anime sounds", "viral audio", "MP3 download free"],
     metadataBase: new URL((process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "")),
     openGraph: {
         type: "website",

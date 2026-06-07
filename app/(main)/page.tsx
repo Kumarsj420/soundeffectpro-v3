@@ -12,12 +12,29 @@ import LatestSounds from "@/app/components/LatestSounds";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-    title: "SoundEffectPro — Meme & Viral Sound Effects",
-    description: "Discover trending meme sound effects, viral audio clips, and funny sounds. Play instantly, download for free.",
+    title: "SoundEffectPro — Free Meme & Viral Sound Effects",
+    description: "200K+ free sound effects — meme sounds, gaming clips, anime audio, viral sounds. Download royalty-free MP3 for YouTube, TikTok, Twitch & Discord. No copyright. Updated daily.",
+    keywords: [
+        "free sound effects",
+        "meme sound effects",
+        "royalty free sound effects",
+        "no copyright sounds",
+        "sound effects for YouTube",
+        "TikTok sounds",
+        "Discord soundboard",
+        "Twitch sound effects",
+        "gaming sound effects",
+        "anime sound effects",
+        "MP3 sound effects download",
+        "viral audio clips",
+        "meme soundboard",
+        "free MP3 download",
+        "content creator sounds",
+    ],
     alternates: { canonical: "/" },
     openGraph: {
-        title: "SoundEffectPro — Meme & Viral Sound Effects",
-        description: "Discover trending meme sound effects, viral audio clips, and funny sounds.",
+        title: "SoundEffectPro — Free Meme & Viral Sound Effects",
+        description: "200K+ free royalty-free sound effects for YouTube, TikTok, Twitch & Discord. Download MP3 instantly.",
         url: "/",
     },
 };

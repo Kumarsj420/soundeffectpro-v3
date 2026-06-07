@@ -35,14 +35,14 @@ function autoDescription(
     views: number,
     downloads: number
 ): string {
-    const topTags = tags.slice(0, 4).join(", ");
+    const topTags = tags.slice(0, 3).join(", ");
     const plays = views >= 1000 ? `${Math.round(views / 1000)}K` : String(views);
     const dl = downloads >= 1000 ? `${Math.round(downloads / 1000)}K` : String(downloads);
     return (
-        `Play and download the "${title}" ${category.toLowerCase()} sound effect for free. ` +
-        `${duration} MP3 · ${plays} plays · ${dl} downloads. ` +
-        (topTags ? `Tags: ${topTags}. ` : "") +
-        `Perfect for Discord soundboards, TikTok videos, memes, gaming streams, and content creation.`
+        `Download "${title}" — free ${category.toLowerCase()} sound effect MP3. ` +
+        `${duration} · ${plays} plays · ${dl} downloads. ` +
+        `Royalty-free, no copyright. Use in YouTube videos, TikTok clips, Twitch streams, Discord bots, and meme content.` +
+        (topTags ? ` Tags: ${topTags}.` : "")
     );
 }
 
@@ -51,7 +51,7 @@ export async function generateStaticParams() {
         await connectDB();
         const sounds = await File.find({ visibility: true })
             .sort({ "stats.views": -1 })
-            .limit(200)
+            .limit(500)
             .select("slug s_id")
             .lean();
         return sounds.map((s) => ({ slug: `${s.slug}-${s.s_id}` }));
@@ -97,17 +97,21 @@ export async function generateMetadata({
         title,
         description,
         keywords: [
-            sound.title,
             `${sound.title} sound effect`,
-            `${sound.title} meme sound`,
-            `${sound.title} mp3`,
+            `${sound.title} mp3 download`,
             `${sound.title} free download`,
+            `${sound.title} for YouTube`,
+            `${sound.title} royalty free`,
+            `${sound.title} no copyright`,
+            `${sound.title} meme sound`,
             ...sound.tags,
             category,
-            "sound effect",
-            "meme sound",
-            "free download",
-            "soundboard",
+            "free sound effect download",
+            "royalty free sound effect",
+            "no copyright sound",
+            "YouTube sound effect",
+            "TikTok sound effect",
+            "MP3 download free",
         ],
         alternates: { canonical: canonicalUrl },
         openGraph: {
@@ -240,9 +244,41 @@ export default async function SoundPage({
         "@context": "https://schema.org",
         "@type":    "BreadcrumbList",
         itemListElement: [
-            { "@type": "ListItem", position: 1, name: "Home",            item: BASE },
+            { "@type": "ListItem", position: 1, name: "Home",               item: BASE },
             { "@type": "ListItem", position: 2, name: `${category} Sounds`, item: `${BASE}/sounds/${categorySlug}` },
-            { "@type": "ListItem", position: 3, name: `${sound.title} Sound Effect` },
+            { "@type": "ListItem", position: 3, name: `${sound.title} Sound Effect`, item: canonicalUrl },
+        ],
+    };
+
+    // ── JSON-LD: FAQPage — drives "People Also Ask" rich results ─────────────
+    const faqLd = {
+        "@context": "https://schema.org",
+        "@type":    "FAQPage",
+        mainEntity: [
+            {
+                "@type": "Question",
+                name: `Is the ${sound.title} sound effect free to download?`,
+                acceptedAnswer: {
+                    "@type": "Answer",
+                    text: `Yes, the ${sound.title} sound effect is 100% free to play and download as an MP3 on SoundEffectPro. No account or payment required.`,
+                },
+            },
+            {
+                "@type": "Question",
+                name: `Can I use the ${sound.title} sound effect in YouTube videos?`,
+                acceptedAnswer: {
+                    "@type": "Answer",
+                    text: `You can use the ${sound.title} sound effect in YouTube videos, TikTok clips, Twitch streams, and other content. Check the license shown on this page for specific terms.`,
+                },
+            },
+            {
+                "@type": "Question",
+                name: `How long is the ${sound.title} sound effect?`,
+                acceptedAnswer: {
+                    "@type": "Answer",
+                    text: `The ${sound.title} sound effect is ${sound.duration as string} long in MP3 format.`,
+                },
+            },
         ],
     };
 
@@ -373,6 +409,7 @@ export default async function SoundPage({
             {/* JSON-LD */}
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(audioLd) }} />
             <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
         </div>
     );
 }

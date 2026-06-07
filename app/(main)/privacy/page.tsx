@@ -5,6 +5,7 @@ import { Calendar, Globe, Mail } from "lucide-react";
 export const metadata: Metadata = {
     title: "Privacy Policy",
     description: "How SoundEffectPro collects, uses, and protects your personal information.",
+    alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {

@@ -5,6 +5,7 @@ import ContactForm from "./ContactForm";
 export const metadata: Metadata = {
     title: "Contact Us",
     description: "Get in touch with the SoundEffectPro team. We're here to help with questions, DMCA requests, and feedback.",
+    alternates: { canonical: "/contact" },
 };
 
 const CONTACT_EMAIL = "soundeffectpro420@gmail.com";

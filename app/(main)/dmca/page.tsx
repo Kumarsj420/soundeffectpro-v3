@@ -5,6 +5,7 @@ import { Calendar, Globe, Mail } from "lucide-react";
 export const metadata: Metadata = {
     title: "DMCA / Copyright Policy",
     description: "How to report copyright infringement and how SoundEffectPro handles DMCA takedown requests.",
+    alternates: { canonical: "/dmca" },
 };
 
 export default function DmcaPage() {

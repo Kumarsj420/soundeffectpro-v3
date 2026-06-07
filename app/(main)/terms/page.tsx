@@ -5,6 +5,7 @@ import { Calendar, Globe, Mail } from "lucide-react";
 export const metadata: Metadata = {
     title: "Terms of Service",
     description: "Terms and conditions governing your use of SoundEffectPro.",
+    alternates: { canonical: "/terms" },
 };
 
 export default function TermsPage() {

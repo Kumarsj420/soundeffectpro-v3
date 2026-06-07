@@ -4,7 +4,6 @@ import Link from "next/link";
 import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import { CATEGORY_SLUGS, CATEGORIES } from "@/app/lib/constants";
-import AdBanner from "@/app/components/AdBanner";
 import CategorySounds from "@/app/components/CategorySounds";
 
 const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "");
@@ -169,14 +168,6 @@ export default async function CategoryPage({
                 ))}
             </div>
 
-            {/* Ad 1: Display leaderboard between sort tabs and grid */}
-            <AdBanner
-                type="display"
-                slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_DISPLAY ?? ""}
-                format="horizontal"
-                className="rounded-xl mb-6"
-            />
-
             {/* Grid with load more */}
             {sounds.length > 0 ? (
                 <CategorySounds
@@ -193,12 +184,6 @@ export default async function CategoryPage({
                 </div>
             )}
 
-            {/* Ad 3: Multiplex before SEO block — catches users at bottom */}
-            <AdBanner
-                type="multiplex"
-                slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_MULTIPLEX ?? ""}
-                className="mt-10 rounded-xl"
-            />
 
             {/* SEO text */}
             <div className="mt-8 rounded-2xl border border-white/8 bg-[#141414] p-6 text-sm text-white/50 leading-relaxed">

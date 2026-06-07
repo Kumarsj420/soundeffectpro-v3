@@ -6,7 +6,6 @@ import File from "@/app/lib/models/File";
 import SoundCard from "@/app/components/SoundCard";
 import { Badge } from "@/app/components/ui/badge";
 import { getWeekStart } from "@/app/lib/statsPeriod";
-import AdBanner from "@/app/components/AdBanner";
 import LatestSounds from "@/app/components/LatestSounds";
 
 export const revalidate = 300;
@@ -188,14 +187,6 @@ export default async function HomePage() {
                 </div>
             </section>
 
-            {/* -- Ad 1: Display leaderboard after categories -- */}
-            <AdBanner
-                type="display"
-                slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_DISPLAY ?? ""}
-                format="horizontal"
-                className="rounded-xl"
-            />
-
             {/* -- Trending -- */}
             <Section
                 icon={<Flame className="h-5 w-5 text-orange-500" />}
@@ -205,12 +196,6 @@ export default async function HomePage() {
                 <SoundGrid sounds={trending} />
             </Section>
 
-            {/* -- Ad 2: In-article native between Trending and Hot This Week -- */}
-            <AdBanner
-                type="in-article"
-                slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_IN_ARTICLE ?? ""}
-            />
-
             {/* -- This Week -- */}
             <Section
                 icon={<TrendingUp className="h-5 w-5 text-emerald-500" />}
@@ -219,14 +204,6 @@ export default async function HomePage() {
                 <SoundGrid sounds={weekly} cols={4} />
             </Section>
 
-            {/* -- Ad 3: Display leaderboard after Hot This Week -- */}
-            <AdBanner
-                type="display"
-                slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_DISPLAY ?? ""}
-                format="horizontal"
-                className="rounded-xl"
-            />
-
             {/* -- Latest -- */}
             <Section
                 icon={<Sparkles className="h-5 w-5 text-violet-400" />}
@@ -234,13 +211,6 @@ export default async function HomePage() {
             >
                 <LatestSounds initial={latest} total={latestTotal} />
             </Section>
-
-            {/* -- Ad 4: Multiplex grid before SEO block — highest RPM placement -- */}
-            <AdBanner
-                type="multiplex"
-                slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_MULTIPLEX ?? ""}
-                className="rounded-xl"
-            />
 
             {/* -- SEO text -- */}
             <section className="rounded-2xl border border-white/7 bg-[#111113] p-6 sm:p-8">

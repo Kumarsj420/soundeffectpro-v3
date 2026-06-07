@@ -5,7 +5,6 @@ import File from "@/app/lib/models/File";
 import NotFound from "@/app/lib/models/NotFound";
 import SearchQuery from "@/app/lib/models/SearchQuery";
 import Link from "next/link";
-import AdBanner from "@/app/components/AdBanner";
 import SearchResults from "@/app/components/SearchResults";
 import { containsBannedWord } from "@/app/lib/bannedWords";
 import { searchSounds } from "@/app/lib/meilisearch";
@@ -221,12 +220,6 @@ export default async function SearchPage({
                         query={query}
                         sort={sort}
                     />
-                    <AdBanner
-                        type="display"
-                        slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_DISPLAY ?? ""}
-                        format="horizontal"
-                        className="rounded-xl mt-6"
-                    />
                 </>
             )}
 
@@ -237,12 +230,6 @@ export default async function SearchPage({
                 </div>
             )}
 
-            {/* Ad: Multiplex at bottom */}
-            <AdBanner
-                type="multiplex"
-                slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_MULTIPLEX ?? ""}
-                className="mt-10 rounded-xl"
-            />
         </div>
     );
 }

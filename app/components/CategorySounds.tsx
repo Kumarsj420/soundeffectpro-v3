@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import SoundCard from "@/app/components/SoundCard";
-import AdBanner from "@/app/components/AdBanner";
 
 interface Sound {
     s_id: string; slug: string; title: string; duration: string;
@@ -47,11 +46,6 @@ export default function CategorySounds({ initial, total, category, sort }: Props
         <div className="space-y-6">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {first8.map(s => <SoundCard key={s.s_id} {...s} />)}
-                {rest.length > 0 && (
-                    <div className="sm:col-span-2 lg:col-span-3">
-                        <AdBanner type="in-feed" slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_IN_FEED ?? ""} />
-                    </div>
-                )}
                 {rest.map(s => <SoundCard key={s.s_id} {...s} />)}
             </div>
             {hasMore && (

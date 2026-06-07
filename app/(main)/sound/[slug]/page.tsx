@@ -6,7 +6,6 @@ import File from "@/app/lib/models/File";
 import AudioPlayer from "@/app/components/AudioPlayer";
 import ReportButton from "@/app/components/ReportButton";
 import RelatedSounds from "@/app/components/RelatedSounds";
-import AdBanner from "@/app/components/AdBanner";
 import ShareButton from "@/app/components/ShareButton";
 import Comments from "@/app/components/Comments";
 import AddToSoundboard from "@/app/components/AddToSoundboard";
@@ -326,12 +325,6 @@ export default async function SoundPage({
                         <ReportButton slug={canonical} />
                     </div>
 
-                    {/* Ad: in-article */}
-                    <AdBanner
-                        type="in-article"
-                        slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_IN_ARTICLE ?? ""}
-                    />
-
                     {/* Description */}
                     {sound.description && (
                         <div className="rounded-2xl border border-white/8 bg-[#141414] p-5">
@@ -390,20 +383,6 @@ export default async function SoundPage({
                         total={relatedTotal}
                     />
 
-                    {/* Ad: display after related sounds */}
-                    <AdBanner
-                        type="display"
-                        slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_DISPLAY ?? ""}
-                        format="horizontal"
-                        className="rounded-xl"
-                    />
-
-                    {/* Ad: Multiplex at page bottom */}
-                    <AdBanner
-                        type="multiplex"
-                        slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_MULTIPLEX ?? ""}
-                        className="rounded-xl"
-                    />
             </div>
 
             {/* JSON-LD */}

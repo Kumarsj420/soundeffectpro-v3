@@ -39,7 +39,7 @@ function fmt(n: number) {
 // ── Card action menu (3-dot) ──────────────────────────────────────────────────
 interface Board { sbId: string; name: string; sounds: string[] }
 
-function CardMenu({ s_id, slug, title }: { s_id: string; slug: string; title: string }) {
+function CardMenu({ s_id, slug, title, onOpenChange }: { s_id: string; slug: string; title: string; onOpenChange?: (open: boolean) => void }) {
     const { data: session } = useSession();
     const [open,     setOpen]     = useState(false);
     const [view,     setView]     = useState<"menu" | "soundboard">("menu");
@@ -87,7 +87,7 @@ function CardMenu({ s_id, slug, title }: { s_id: string; slug: string; title: st
             .finally(() => setLoading(false));
     }, [view, session, s_id]);
 
-    function close() { setOpen(false); setView("menu"); }
+    function close() { setOpen(false); onOpenChange?.(false); setView("menu"); }
 
     async function handleLike() {
         if (liking) return;
@@ -157,7 +157,7 @@ function CardMenu({ s_id, slug, title }: { s_id: string; slug: string; title: st
     return (
         <div ref={menuRef} className="relative shrink-0">
             <button
-                onClick={(e) => { e.stopPropagation(); setOpen(o => !o); setView("menu"); }}
+                onClick={(e) => { e.stopPropagation(); const next = !open; setOpen(next); onOpenChange?.(next); setView("menu"); }}
                 aria-label="More options"
                 className="h-7 w-7 flex items-center justify-center rounded-lg text-white/30 hover:text-white hover:bg-white/8 transition-colors"
             >
@@ -290,6 +290,7 @@ function CardMenu({ s_id, slug, title }: { s_id: string; slug: string; title: st
 export default function SoundCard({ s_id, slug, title, duration, tags, category, btnColor, stats }: SoundCardProps) {
     const [playing, setPlaying]   = useState(false);
     const [loading, setLoading]   = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const hue      = HUE_MAP[btnColor] ?? 'hue-rotate-0';
 
@@ -328,6 +329,7 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
         <article className={cn(
             "group relative flex flex-col gap-3 rounded-2xl border bg-[#111113] p-4 transition-all duration-200",
             "hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/30",
+            menuOpen ? "z-10" : "z-0",
             playing
                 ? "border-orange-500/40 shadow-lg shadow-orange-500/10"
                 : "border-white/7 hover:border-white/14"
@@ -359,7 +361,7 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
                     </div>
                 </div>
 
-                <CardMenu s_id={s_id} slug={slug} title={title} />
+                <CardMenu s_id={s_id} slug={slug} title={title} onOpenChange={setMenuOpen} />
             </div>
 
             {/* Tags */}

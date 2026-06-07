@@ -25,7 +25,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             {/* Below-header leaderboard — visible on every main site page */}
             <AdBanner
                 type="display"
-                slot={process.env.NEXT_PUBLIC_GOOGLE_AD_SLOT_HEADER ?? ""}
+                slot={process.env.NEXT_PUBLIC_BELOW_HEADER ?? ""}
                 format="auto"
                 className="border-b border-white/5"
             />

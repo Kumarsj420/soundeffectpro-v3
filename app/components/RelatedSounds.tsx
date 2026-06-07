@@ -55,7 +55,7 @@ export default function RelatedSounds({ slug, category, tags, initial, total }: 
                 <button
                     onClick={loadMore}
                     disabled={loading}
-                    className="w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-sm font-semibold text-white transition-colors flex items-center justify-center gap-2"
+                    className="mx-auto max-w-xs w-full py-3 rounded-xl bg-orange-500 hover:bg-orange-400 disabled:opacity-50 text-sm font-semibold text-white transition-colors flex items-center justify-center gap-2"
                 >
                     {loading
                         ? <><Loader2 className="h-4 w-4 animate-spin" /> Loading…</>

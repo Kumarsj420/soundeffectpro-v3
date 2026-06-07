@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { connectDB } from "@/app/lib/db";
-import Soundboard from "@/app/lib/models/Soundboard";
+import Board from "@/app/lib/models/Board";
 import SbModel from "@/app/lib/models/Sb";
 
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function GET() {
 
         await connectDB();
 
-        const boards = await Soundboard.find({ userId: session.user.uid })
+        const boards = await Board.find({ userId: session.user.uid })
             .sort({ createdAt: -1 })
             .select("sbId name thumbnail isPublic createdAt")
             .lean();
@@ -62,12 +62,12 @@ export async function POST(req: Request) {
 
         await connectDB();
 
-        const count = await Soundboard.countDocuments({ userId: session.user.uid });
+        const count = await Board.countDocuments({ userId: session.user.uid });
         if (count >= MAX_BOARDS) {
             return Response.json({ error: `Max ${MAX_BOARDS} soundboards per user` }, { status: 429 });
         }
 
-        const board = await Soundboard.create({
+        const board = await Board.create({
             userId:   session.user.uid,
             name:     name.trim(),
             isPublic: true,

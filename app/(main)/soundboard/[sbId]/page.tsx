@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { connectDB } from "@/app/lib/db";
-import Soundboard from "@/app/lib/models/Soundboard";
+import Board from "@/app/lib/models/Board";
 import SbModel from "@/app/lib/models/Sb";
 import File from "@/app/lib/models/File";
 import SoundCard from "@/app/components/SoundCard";
@@ -21,7 +21,7 @@ export async function generateMetadata({
     const { sbId } = await params;
     try {
         await connectDB();
-        const board = await Soundboard.findOne({ sbId }).select("name isPublic").lean();
+        const board = await Board.findOne({ sbId }).select("name isPublic").lean();
         if (!board || !board.isPublic) return { title: "Soundboard", robots: { index: false, follow: false } };
         return {
             title: `${board.name} — Soundboard on SoundEffectPro`,
@@ -62,7 +62,7 @@ export default async function SoundboardPage({
 
     try { await connectDB(); } catch { notFound(); }
 
-    const board = await Soundboard.findOne({ sbId }).lean();
+    const board = await Board.findOne({ sbId }).lean();
     if (!board) notFound();
 
     const isOwner = session?.user.uid === board.userId;

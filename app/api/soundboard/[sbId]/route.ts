@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { connectDB } from "@/app/lib/db";
-import Soundboard from "@/app/lib/models/Soundboard";
+import Board from "@/app/lib/models/Board";
 import SbModel from "@/app/lib/models/Sb";
 import File from "@/app/lib/models/File";
 
@@ -18,7 +18,7 @@ export async function GET(
         const session = await auth().catch(() => null);
         await connectDB();
 
-        const board = await Soundboard.findOne({ sbId }).lean();
+        const board = await Board.findOne({ sbId }).lean();
         if (!board) return Response.json({ error: "Not found" }, { status: 404 });
 
         const isOwner = session?.user.uid === board.userId;
@@ -70,7 +70,7 @@ export async function PATCH(
         };
 
         await connectDB();
-        const board = await Soundboard.findOne({ sbId, userId: session.user.uid });
+        const board = await Board.findOne({ sbId, userId: session.user.uid });
         if (!board) return Response.json({ error: "Not found or not yours" }, { status: 404 });
 
         if (body.action === "add" && body.s_id) {
@@ -126,7 +126,7 @@ export async function DELETE(
         const { sbId } = await params;
         await connectDB();
 
-        const result = await Soundboard.deleteOne({ sbId, userId: session.user.uid });
+        const result = await Board.deleteOne({ sbId, userId: session.user.uid });
         if (result.deletedCount === 0) {
             return Response.json({ error: "Not found or not yours" }, { status: 404 });
         }

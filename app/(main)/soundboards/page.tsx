@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { connectDB } from "@/app/lib/db";
-import Soundboard from "@/app/lib/models/Soundboard";
+import Board from "@/app/lib/models/Board";
 import SbModel from "@/app/lib/models/Sb";
 import { LayoutGrid, Music } from "lucide-react";
 
@@ -26,7 +26,7 @@ async function getBoards() {
         await connectDB();
 
         // Only public boards with a thumbnail
-        const boards = await Soundboard.find({
+        const boards = await Board.find({
             isPublic:  true,
             thumbnail: { $exists: true, $nin: ["", null] },
         })

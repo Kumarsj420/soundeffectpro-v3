@@ -1,38 +1,68 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/app/lib/db";
-import Soundboard from "@/app/lib/models/Soundboard";
+import Board from "@/app/lib/models/Board";
 import SbModel from "@/app/lib/models/Sb";
+import Category from "@/app/lib/models/Category";
 import mongoose from "mongoose";
 
 export const dynamic = "force-dynamic";
 
-// One-time migration: copy sounds[] from soundboards → soundboard (Sb) collection
-// then unset the sounds field from every soundboard document.
-// Protected by CRON_SECRET to prevent public access.
+function toSlug(name: string) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+// POST — run both migrations:
+//   1. categories with thumbnails → soundboards collection
+//   2. soundboards.sounds[] → soundboard junction collection (legacy cleanup)
+// Protected by CRON_SECRET.
 export async function POST(req: Request) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    const authHeader = req.headers.get("authorization");
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
 
-    // Fetch all boards that still have a non-empty sounds array
+    // ── 1. Categories → soundboards ───────────────────────────────────────────
+    const categories = await Category.find({
+        thumb: { $exists: true, $nin: [null, ""] },
+    }).lean();
+
+    let categoriesMigrated = 0;
+
+    for (const cat of categories) {
+        const sbId = cat.sb_id;
+        if (!sbId) continue;
+
+        await Board.updateOne(
+            { sbId },
+            {
+                $setOnInsert: {
+                    sbId,
+                    userId:    cat.user?.uid ?? "system",
+                    name:      cat.name,
+                    slug:      cat.slug ?? toSlug(cat.name),
+                    thumbnail: cat.thumb ?? "",
+                    isPublic:  cat.visibility ?? true,
+                    createdAt: cat.createdAt,
+                },
+            },
+            { upsert: true }
+        );
+        categoriesMigrated++;
+    }
+
+    // ── 2. soundboards.sounds[] → Sb junction (legacy cleanup) ───────────────
     const boards = await mongoose.connection.db
         ?.collection("soundboards")
         .find({ sounds: { $exists: true, $not: { $size: 0 } } })
         .toArray();
 
-    if (!boards?.length) {
-        return NextResponse.json({ message: "Nothing to migrate", migrated: 0 });
-    }
-
     let totalLinks = 0;
 
-    for (const board of boards) {
+    for (const board of boards ?? []) {
         const sbId   = board.sbId as string;
         const sounds = (board.sounds ?? []) as string[];
-
         for (const s_id of sounds) {
             await SbModel.updateOne(
                 { sb_id: sbId, s_id },
@@ -43,37 +73,39 @@ export async function POST(req: Request) {
         }
     }
 
-    // Remove sounds field from all soundboard documents
+    // Remove legacy sounds field from all soundboard docs
     await mongoose.connection.db
         ?.collection("soundboards")
         .updateMany({ sounds: { $exists: true } }, { $unset: { sounds: "" } });
 
     return NextResponse.json({
-        message: "Migration complete",
-        boardsMigrated: boards.length,
-        linksCreated: totalLinks,
+        message:             "Both migrations complete",
+        categoriesMigrated,
+        soundboardLinks:     totalLinks,
     });
 }
 
 // GET — dry run: shows what would be migrated without writing
 export async function GET(req: Request) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    const authHeader = req.headers.get("authorization");
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await connectDB();
 
-    const boards = await mongoose.connection.db
+    const categories = await Category.find({
+        thumb: { $exists: true, $nin: [null, ""] },
+    }).select("sb_id name thumb visibility").lean();
+
+    const legacyBoards = await mongoose.connection.db
         ?.collection("soundboards")
         .find({ sounds: { $exists: true, $not: { $size: 0 } } })
         .toArray();
 
-    const preview = (boards ?? []).map(b => ({
-        sbId: b.sbId,
-        name: b.name,
-        soundCount: (b.sounds as string[] ?? []).length,
-    }));
-
-    return NextResponse.json({ wouldMigrate: preview.length, boards: preview });
+    return NextResponse.json({
+        categoriesToMigrate: categories.length,
+        categories: categories.map(c => ({ sb_id: c.sb_id, name: c.name, thumb: c.thumb })),
+        legacySoundboardsToClean: (legacyBoards ?? []).length,
+    });
 }

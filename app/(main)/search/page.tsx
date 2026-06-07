@@ -4,7 +4,7 @@ import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import NotFound from "@/app/lib/models/NotFound";
 import SearchQuery from "@/app/lib/models/SearchQuery";
-import Soundboard from "@/app/lib/models/Soundboard";
+import Board from "@/app/lib/models/Board";
 import SbModel from "@/app/lib/models/Sb";
 import Link from "next/link";
 import Image from "next/image";
@@ -136,7 +136,7 @@ export default async function SearchPage({
 
         // ── Soundboard search ─────────────────────────────────────────────
         if (query.length >= 2) {
-            const sbDocs = await Soundboard.find({
+            const sbDocs = await Board.find({
                 isPublic:  true,
                 thumbnail: { $exists: true, $nin: ["", null] },
                 $text:     { $search: query },

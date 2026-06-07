@@ -7,6 +7,7 @@ import AudioPlayer from "@/app/components/AudioPlayer";
 import ReportButton from "@/app/components/ReportButton";
 import RelatedSounds from "@/app/components/RelatedSounds";
 import ShareButton from "@/app/components/ShareButton";
+import AdBanner from "@/app/components/AdBanner";
 import Comments from "@/app/components/Comments";
 import AddToSoundboard from "@/app/components/AddToSoundboard";
 import { parseSoundParam } from "@/app/lib/utils";
@@ -324,6 +325,11 @@ export default async function SoundPage({
                         <AddToSoundboard s_id={s.s_id} />
                         <ReportButton slug={canonical} />
                     </div>
+
+                    <AdBanner
+                        type="in-article"
+                        slot={process.env.NEXT_PUBLIC_SOUND_PAGE_BUTTONS ?? ""}
+                    />
 
                     {/* Description */}
                     {sound.description && (

@@ -1,10 +1,12 @@
 import { auth } from "@/auth";
 import { connectDB } from "@/app/lib/db";
-import Soundboard from "@/app/lib/models/Soundboard";
+import Board from "@/app/lib/models/Board";
+import SbModel from "@/app/lib/models/Sb";
 
 export const dynamic = "force-dynamic";
 
 const MAX_BOARDS = 10;
+const MAX_SOUNDS = 30;
 
 // ── GET /api/soundboard — list current user's soundboards ────────────────────
 export async function GET() {
@@ -13,12 +15,31 @@ export async function GET() {
         if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
         await connectDB();
-        const boards = await Soundboard.find({ userId: session.user.uid })
+
+        const boards = await Board.find({ userId: session.user.uid })
             .sort({ createdAt: -1 })
-            .select("sbId name sounds isPublic createdAt")
+            .select("sbId name thumbnail isPublic createdAt")
             .lean();
 
-        return Response.json({ boards });
+        // Fetch all sound links for this user's boards in one query
+        const sbIds  = boards.map(b => b.sbId);
+        const links  = await SbModel.find({ sb_id: { $in: sbIds } }).select("sb_id s_id").lean();
+
+        const soundsByBoard = new Map<string, string[]>();
+        for (const l of links) {
+            if (!soundsByBoard.has(l.sb_id)) soundsByBoard.set(l.sb_id, []);
+            soundsByBoard.get(l.sb_id)!.push(l.s_id);
+        }
+
+        const result = boards.map(b => ({
+            sbId:      b.sbId,
+            name:      b.name,
+            thumbnail: b.thumbnail ?? "",
+            isPublic:  b.isPublic,
+            sounds:    soundsByBoard.get(b.sbId) ?? [],
+        }));
+
+        return Response.json({ boards: result });
     } catch {
         return Response.json({ error: "Server error" }, { status: 500 });
     }
@@ -41,24 +62,28 @@ export async function POST(req: Request) {
 
         await connectDB();
 
-        // Cap per-user soundboards
-        const count = await Soundboard.countDocuments({ userId: session.user.uid });
+        const count = await Board.countDocuments({ userId: session.user.uid });
         if (count >= MAX_BOARDS) {
             return Response.json({ error: `Max ${MAX_BOARDS} soundboards per user` }, { status: 429 });
         }
 
-        const board = await Soundboard.create({
+        const board = await Board.create({
             userId:   session.user.uid,
             name:     name.trim(),
-            sounds:   s_id ? [s_id] : [],
             isPublic: true,
         });
 
+        // Add initial sound if provided
+        if (s_id && typeof s_id === "string") {
+            await SbModel.create({ sb_id: board.sbId, s_id }).catch(() => null);
+        }
+
         return Response.json({ ok: true, board: {
-            sbId:     board.sbId,
-            name:     board.name,
-            sounds:   board.sounds,
-            isPublic: board.isPublic,
+            sbId:      board.sbId,
+            name:      board.name,
+            thumbnail: board.thumbnail ?? "",
+            isPublic:  board.isPublic,
+            sounds:    s_id ? [s_id] : [],
         }}, { status: 201 });
 
     } catch {

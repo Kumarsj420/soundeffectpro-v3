@@ -34,8 +34,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    try {
     await connectDB();
-    const db = mongoose.connection.db!;
+    const db = mongoose.connection.db;
+    if (!db) return NextResponse.json({ error: "DB not connected" }, { status: 500 });
 
     // ── 1. Categories → soundboards (bulk upsert) ─────────────────────────────
     const categories = await Category.find({}).lean();
@@ -141,6 +143,10 @@ export async function POST(req: Request) {
         soundLinksCopied,
         soundOldCollectionDropped: existingCollections.length > 0,
     });
+    } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return NextResponse.json({ error: message }, { status: 500 });
+    }
 }
 
 // GET — dry run: shows what would be migrated

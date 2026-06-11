@@ -7,6 +7,9 @@ import { getWeekStart, getMonthStart, getHalfYearStart } from "@/app/lib/statsPe
 
 export const dynamic = "force-dynamic";
 
+// Vercel max duration (set to 300s for pro, ignored on hobby but we use bulkWrite so it's fast)
+export const maxDuration = 300;
+
 function toSlug(name: string) {
     return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
@@ -21,10 +24,10 @@ function defaultStats() {
     };
 }
 
-// POST — run all migrations. Protected by CRON_SECRET.
-//   1. categories → soundboards (upsert all categories as soundboards)
-//   2. Old Board docs in soundboards (have sbId/userId/thumbnail/isPublic) → new schema
-//   3. soundboard junction → soundboard_sounds (copy + drop old collection)
+// POST — run all migrations using bulkWrite (single round trip each). Protected by CRON_SECRET.
+//   1. categories → soundboards
+//   2. Old Board docs in soundboards (sbId/userId/thumbnail/isPublic) → new schema
+//   3. soundboard junction → soundboard_sounds (bulk copy + drop)
 export async function POST(req: Request) {
     const authHeader = req.headers.get("authorization");
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -34,78 +37,100 @@ export async function POST(req: Request) {
     await connectDB();
     const db = mongoose.connection.db!;
 
-    // ── 1. Categories → soundboards ───────────────────────────────────────────
+    // ── 1. Categories → soundboards (bulk upsert) ─────────────────────────────
     const categories = await Category.find({}).lean();
     let categoriesMigrated = 0;
 
-    for (const cat of categories) {
-        if (!cat.sb_id) continue;
-        await db.collection("soundboards").updateOne(
-            { sb_id: cat.sb_id },
-            {
-                $set: {
-                    sb_id:      cat.sb_id,
-                    name:       cat.name,
-                    slug:       cat.slug ?? toSlug(cat.name),
-                    thumb:      cat.thumb ?? null,
-                    visibility: cat.visibility ?? true,
-                    total_sfx:  cat.total_sfx ?? 0,
-                    stats:      cat.stats ?? defaultStats(),
-                    user:       cat.user ?? { uid: "system", name: "System" },
-                    createdAt:  cat.createdAt,
+    if (categories.length > 0) {
+        const catOps = categories
+            .filter(cat => !!cat.sb_id)
+            .map(cat => ({
+                updateOne: {
+                    filter: { sb_id: cat.sb_id },
+                    update: {
+                        $set: {
+                            sb_id:      cat.sb_id,
+                            name:       cat.name,
+                            slug:       cat.slug ?? toSlug(cat.name),
+                            thumb:      cat.thumb ?? null,
+                            visibility: cat.visibility ?? true,
+                            total_sfx:  cat.total_sfx ?? 0,
+                            stats:      cat.stats ?? defaultStats(),
+                            user:       cat.user ?? { uid: "system", name: "System" },
+                            createdAt:  cat.createdAt,
+                        },
+                        $unset: { sbId: "", userId: "", thumbnail: "", isPublic: "" },
+                    },
+                    upsert: true,
                 },
-                $unset: { sbId: "", userId: "", thumbnail: "", isPublic: "" },
-            },
-            { upsert: true }
-        );
-        categoriesMigrated++;
+            }));
+
+        await db.collection("soundboards").bulkWrite(catOps, { ordered: false });
+        categoriesMigrated = catOps.length;
     }
 
-    // ── 2. Convert old-schema Board docs (have sbId field) ───────────────────
+    // ── 2. Convert old-schema Board docs (have sbId field) ────────────────────
     const oldBoards = await db.collection("soundboards")
         .find({ sbId: { $exists: true } })
         .toArray();
 
     let boardsConverted = 0;
 
-    for (const doc of oldBoards) {
-        const uid      = doc.userId as string;
-        const userDoc  = uid ? await User.findOne({ uid }).select("name").lean() : null;
-        const userName = (userDoc?.name as string | undefined) ?? "User";
+    if (oldBoards.length > 0) {
+        // Batch-fetch all user names in one query
+        const uids    = [...new Set(oldBoards.map(d => d.userId as string).filter(Boolean))];
+        const users   = await User.find({ uid: { $in: uids } }).select("uid name").lean();
+        const userMap = new Map(users.map(u => [u.uid, u.name ?? "User"]));
 
-        await db.collection("soundboards").updateOne(
-            { _id: doc._id },
-            {
-                $set: {
-                    sb_id:       doc.sbId,
-                    "user.uid":  uid ?? "unknown",
-                    "user.name": userName,
-                    thumb:       doc.thumbnail ?? null,
-                    visibility:  doc.isPublic ?? true,
-                    slug:        doc.slug ?? toSlug(doc.name as string),
-                    total_sfx:   0,
-                    stats:       defaultStats(),
+        const boardOps = oldBoards.map(doc => ({
+            updateOne: {
+                filter: { _id: doc._id },
+                update: {
+                    $set: {
+                        sb_id:       doc.sbId,
+                        "user.uid":  doc.userId ?? "unknown",
+                        "user.name": userMap.get(doc.userId as string) ?? "User",
+                        thumb:       doc.thumbnail ?? null,
+                        visibility:  doc.isPublic ?? true,
+                        slug:        doc.slug ?? toSlug(doc.name as string),
+                        total_sfx:   0,
+                        stats:       defaultStats(),
+                    },
+                    $unset: { sbId: "", userId: "", thumbnail: "", isPublic: "" },
                 },
-                $unset: { sbId: "", userId: "", thumbnail: "", isPublic: "" },
-            }
-        );
-        boardsConverted++;
+            },
+        }));
+
+        await db.collection("soundboards").bulkWrite(boardOps, { ordered: false });
+        boardsConverted = boardOps.length;
     }
 
-    // ── 3. soundboard → soundboard_sounds (copy then drop) ───────────────────
+    // ── 3. soundboard → soundboard_sounds (bulk copy then drop) ───────────────
     const existingCollections = await db.listCollections({ name: "soundboard" }).toArray();
     let soundLinksCopied = 0;
 
     if (existingCollections.length > 0) {
         const oldLinks = await db.collection("soundboard").find({}).toArray();
-        for (const link of oldLinks) {
-            await db.collection("soundboard_sounds").updateOne(
-                { sb_id: link.sb_id, s_id: link.s_id },
-                { $setOnInsert: { sb_id: link.sb_id, s_id: link.s_id, createdAt: link.createdAt ?? new Date() } },
-                { upsert: true }
-            );
-            soundLinksCopied++;
+
+        if (oldLinks.length > 0) {
+            const linkOps = oldLinks.map(link => ({
+                updateOne: {
+                    filter: { sb_id: link.sb_id, s_id: link.s_id },
+                    update: {
+                        $setOnInsert: {
+                            sb_id:     link.sb_id,
+                            s_id:      link.s_id,
+                            createdAt: link.createdAt ?? new Date(),
+                        },
+                    },
+                    upsert: true,
+                },
+            }));
+
+            await db.collection("soundboard_sounds").bulkWrite(linkOps, { ordered: false });
+            soundLinksCopied = oldLinks.length;
         }
+
         await db.collection("soundboard").drop();
     }
 

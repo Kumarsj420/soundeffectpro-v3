@@ -69,7 +69,7 @@ export default async function SearchPage({
 
     let sounds: Record<string, unknown>[] = [];
     let total = 0;
-    let soundboards: { sbId: string; name: string; thumbnail: string; soundCount: number }[] = [];
+    let soundboards: { sb_id: string; name: string; thumb: string; soundCount: number }[] = [];
 
     if (query) {
         // ── Try Meilisearch first ─────────────────────────────────────────
@@ -137,24 +137,24 @@ export default async function SearchPage({
         // ── Soundboard search ─────────────────────────────────────────────
         if (query.length >= 2) {
             const sbDocs = await Board.find({
-                isPublic:  true,
-                thumbnail: { $exists: true, $nin: ["", null] },
-                $text:     { $search: query },
+                visibility: true,
+                thumb:      { $exists: true, $nin: ["", null] },
+                $text:      { $search: query },
             })
                 .limit(4)
-                .select("sbId name thumbnail")
+                .select("sb_id name thumb")
                 .lean()
                 .catch(() => []);
 
             if (sbDocs.length) {
-                const sbIds  = sbDocs.map(b => b.sbId);
+                const sbIds  = sbDocs.map(b => b.sb_id);
                 const counts = await SbModel.aggregate([
                     { $match: { sb_id: { $in: sbIds } } },
                     { $group: { _id: "$sb_id", count: { $sum: 1 } } },
                 ]).catch(() => []);
                 const countMap = new Map(counts.map((c: { _id: string; count: number }) => [c._id, c.count]));
                 soundboards = sbDocs
-                    .map(b => ({ sbId: b.sbId, name: b.name, thumbnail: b.thumbnail, soundCount: countMap.get(b.sbId) ?? 0 }))
+                    .map(b => ({ sb_id: b.sb_id, name: b.name, thumb: b.thumb ?? "", soundCount: countMap.get(b.sb_id) ?? 0 }))
                     .filter(b => b.soundCount > 0);
             }
         }
@@ -261,12 +261,12 @@ export default async function SearchPage({
                     <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
                         {soundboards.map(b => (
                             <Link
-                                key={b.sbId}
-                                href={`/soundboard/${b.sbId}`}
+                                key={b.sb_id}
+                                href={`/soundboard/${b.sb_id}`}
                                 className="group rounded-2xl border border-white/8 bg-[#111113] overflow-hidden hover:border-white/16 hover:-translate-y-0.5 transition-all duration-200"
                             >
                                 <div className="relative aspect-video bg-white/4">
-                                    <Image src={b.thumbnail} alt={b.name} fill className="object-cover" sizes="25vw" />
+                                    <Image src={b.thumb} alt={b.name} fill className="object-cover" sizes="25vw" />
                                     <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/70 px-2 py-0.5 text-xs text-white/80">
                                         <Music className="h-3 w-3" />{b.soundCount}
                                     </div>

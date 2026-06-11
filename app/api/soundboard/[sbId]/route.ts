@@ -18,15 +18,14 @@ export async function GET(
         const session = await auth().catch(() => null);
         await connectDB();
 
-        const board = await Board.findOne({ sbId }).lean();
+        const board = await Board.findOne({ sb_id: sbId }).lean();
         if (!board) return Response.json({ error: "Not found" }, { status: 404 });
 
-        const isOwner = session?.user.uid === board.userId;
-        if (!board.isPublic && !isOwner) {
+        const isOwner = session?.user.uid === board.user.uid;
+        if (!board.visibility && !isOwner) {
             return Response.json({ error: "Private board" }, { status: 403 });
         }
 
-        // Get ordered sound IDs from Sb collection
         const links  = await SbModel.find({ sb_id: sbId }).sort({ createdAt: 1 }).lean();
         const s_ids  = links.map(l => l.s_id);
 
@@ -40,19 +39,19 @@ export async function GET(
         const ordered  = s_ids.map(id => soundMap.get(id)).filter(Boolean);
 
         return Response.json({
-            sbId:      board.sbId,
-            name:      board.name,
-            thumbnail: board.thumbnail ?? "",
-            isPublic:  board.isPublic,
+            sb_id:      board.sb_id,
+            name:       board.name,
+            thumb:      board.thumb ?? null,
+            visibility: board.visibility,
             isOwner,
-            sounds:    ordered,
+            sounds:     ordered,
         });
     } catch {
         return Response.json({ error: "Server error" }, { status: 500 });
     }
 }
 
-// ── PATCH /api/soundboard/[sbId] — add/remove sound, rename, toggle public ───
+// ── PATCH /api/soundboard/[sbId] — add/remove sound, rename, toggle visibility
 export async function PATCH(
     req: Request,
     { params }: { params: Promise<{ sbId: string }> }
@@ -63,14 +62,14 @@ export async function PATCH(
 
         const { sbId } = await params;
         const body = await req.json() as {
-            action?:   "add" | "remove";
-            s_id?:     string;
-            name?:     string;
-            isPublic?: boolean;
+            action?:     "add" | "remove";
+            s_id?:       string;
+            name?:       string;
+            visibility?: boolean;
         };
 
         await connectDB();
-        const board = await Board.findOne({ sbId, userId: session.user.uid });
+        const board = await Board.findOne({ sb_id: sbId, "user.uid": session.user.uid });
         if (!board) return Response.json({ error: "Not found or not yours" }, { status: 404 });
 
         if (body.action === "add" && body.s_id) {
@@ -91,23 +90,23 @@ export async function PATCH(
 
         if (typeof body.name === "string") {
             const trimmed = body.name.trim();
-            if (trimmed.length < 1 || trimmed.length > 60) {
-                return Response.json({ error: "Name must be 1–60 chars" }, { status: 400 });
+            if (trimmed.length < 1 || trimmed.length > 100) {
+                return Response.json({ error: "Name must be 1–100 chars" }, { status: 400 });
             }
             board.name = trimmed;
         }
 
-        if (typeof body.isPublic === "boolean") board.isPublic = body.isPublic;
+        if (typeof body.visibility === "boolean") board.visibility = body.visibility;
 
         await board.save();
 
         const links = await SbModel.find({ sb_id: sbId }).select("s_id").lean();
 
         return Response.json({
-            ok:       true,
-            sounds:   links.map(l => l.s_id),
-            name:     board.name,
-            isPublic: board.isPublic,
+            ok:         true,
+            sounds:     links.map(l => l.s_id),
+            name:       board.name,
+            visibility: board.visibility,
         });
     } catch {
         return Response.json({ error: "Server error" }, { status: 500 });
@@ -126,12 +125,11 @@ export async function DELETE(
         const { sbId } = await params;
         await connectDB();
 
-        const result = await Board.deleteOne({ sbId, userId: session.user.uid });
+        const result = await Board.deleteOne({ sb_id: sbId, "user.uid": session.user.uid });
         if (result.deletedCount === 0) {
             return Response.json({ error: "Not found or not yours" }, { status: 404 });
         }
 
-        // Clean up all sound links for this board
         await SbModel.deleteMany({ sb_id: sbId });
 
         return Response.json({ ok: true });

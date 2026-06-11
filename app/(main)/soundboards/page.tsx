@@ -21,24 +21,26 @@ export const metadata: Metadata = {
     },
 };
 
+function isValidUrl(str: string) {
+    try { return Boolean(new URL(str)); } catch { return false; }
+}
+
 async function getBoards() {
     try {
         await connectDB();
 
-        // Only public boards with a thumbnail
         const boards = await Board.find({
-            isPublic:  true,
-            thumbnail: { $exists: true, $nin: ["", null] },
+            visibility: true,
+            thumb:      { $exists: true, $nin: ["", null] },
         })
             .sort({ createdAt: -1 })
             .limit(60)
-            .select("sbId name thumbnail createdAt")
+            .select("sb_id name thumb createdAt")
             .lean();
 
         if (!boards.length) return [];
 
-        // Get sound counts from Sb collection
-        const sbIds = boards.map(b => b.sbId);
+        const sbIds  = boards.map(b => b.sb_id);
         const counts = await SbModel.aggregate([
             { $match: { sb_id: { $in: sbIds } } },
             { $group: { _id: "$sb_id", count: { $sum: 1 } } },
@@ -46,14 +48,9 @@ async function getBoards() {
 
         const countMap = new Map(counts.map(c => [c._id, c.count as number]));
 
-        // Only boards that have sounds AND a valid absolute URL as thumbnail
-        function isValidUrl(str: string) {
-            try { return Boolean(new URL(str)); } catch { return false; }
-        }
-
         return boards
-            .map(b => ({ ...b, soundCount: countMap.get(b.sbId) ?? 0 }))
-            .filter(b => b.soundCount > 0 && isValidUrl(b.thumbnail));
+            .map(b => ({ ...b, soundCount: countMap.get(b.sb_id) ?? 0 }))
+            .filter(b => b.soundCount > 0 && isValidUrl(b.thumb ?? ""));
     } catch {
         return [];
     }
@@ -64,7 +61,6 @@ export default async function SoundboardsPage() {
 
     return (
         <div className="mx-auto max-w-7xl px-4 py-8">
-            {/* Header */}
             <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
                     <LayoutGrid className="h-7 w-7 text-orange-400" />
@@ -87,27 +83,23 @@ export default async function SoundboardsPage() {
                 <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                     {boards.map(b => (
                         <Link
-                            key={b.sbId}
-                            href={`/soundboard/${b.sbId}`}
+                            key={b.sb_id}
+                            href={`/soundboard/${b.sb_id}`}
                             className="group rounded-2xl border border-white/8 bg-[#111113] overflow-hidden hover:border-white/16 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/30 transition-all duration-200"
                         >
-                            {/* Thumbnail */}
                             <div className="relative aspect-video bg-white/4 overflow-hidden">
                                 <Image
-                                    src={b.thumbnail}
+                                    src={b.thumb!}
                                     alt={b.name}
                                     fill
                                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                                 />
-                                {/* Sound count badge */}
                                 <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/70 backdrop-blur-sm px-2 py-0.5 text-xs text-white/80">
                                     <Music className="h-3 w-3" />
                                     {b.soundCount}
                                 </div>
                             </div>
-
-                            {/* Info */}
                             <div className="p-3">
                                 <p className="font-semibold text-sm text-white truncate group-hover:text-orange-400 transition-colors">
                                     {b.name}

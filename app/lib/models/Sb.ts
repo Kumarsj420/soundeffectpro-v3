@@ -12,7 +12,7 @@ const SbSchema = new Schema<ISbEntry>({
     s_id:  { type: String, required: true },
 }, {
     timestamps: true,
-    collection: "soundboard",
+    collection: "soundboard_sounds",
 });
 
 SbSchema.index({ sb_id: 1 });
@@ -20,6 +20,6 @@ SbSchema.index({ sb_id: 1, s_id: 1 }, { unique: true });
 
 const SbModel: Model<ISbEntry> =
     mongoose.models.SbEntry ||
-    mongoose.model<ISbEntry>("SbEntry", SbSchema, "soundboard");
+    mongoose.model<ISbEntry>("SbEntry", SbSchema, "soundboard_sounds");
 
 export default SbModel;

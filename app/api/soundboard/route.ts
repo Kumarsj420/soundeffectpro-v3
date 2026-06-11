@@ -6,7 +6,6 @@ import SbModel from "@/app/lib/models/Sb";
 export const dynamic = "force-dynamic";
 
 const MAX_BOARDS = 10;
-const MAX_SOUNDS = 30;
 
 // ── GET /api/soundboard — list current user's soundboards ────────────────────
 export async function GET() {
@@ -16,14 +15,13 @@ export async function GET() {
 
         await connectDB();
 
-        const boards = await Board.find({ userId: session.user.uid })
+        const boards = await Board.find({ "user.uid": session.user.uid })
             .sort({ createdAt: -1 })
-            .select("sbId name thumbnail isPublic createdAt")
+            .select("sb_id name thumb visibility createdAt")
             .lean();
 
-        // Fetch all sound links for this user's boards in one query
-        const sbIds  = boards.map(b => b.sbId);
-        const links  = await SbModel.find({ sb_id: { $in: sbIds } }).select("sb_id s_id").lean();
+        const sbIds = boards.map(b => b.sb_id);
+        const links = await SbModel.find({ sb_id: { $in: sbIds } }).select("sb_id s_id").lean();
 
         const soundsByBoard = new Map<string, string[]>();
         for (const l of links) {
@@ -32,11 +30,11 @@ export async function GET() {
         }
 
         const result = boards.map(b => ({
-            sbId:      b.sbId,
-            name:      b.name,
-            thumbnail: b.thumbnail ?? "",
-            isPublic:  b.isPublic,
-            sounds:    soundsByBoard.get(b.sbId) ?? [],
+            sb_id:      b.sb_id,
+            name:       b.name,
+            thumb:      b.thumb ?? null,
+            visibility: b.visibility,
+            sounds:     soundsByBoard.get(b.sb_id) ?? [],
         }));
 
         return Response.json({ boards: result });
@@ -56,35 +54,37 @@ export async function POST(req: Request) {
         if (!name || typeof name !== "string" || name.trim().length < 1) {
             return Response.json({ error: "Name required" }, { status: 400 });
         }
-        if (name.trim().length > 60) {
-            return Response.json({ error: "Name too long (max 60 chars)" }, { status: 400 });
+        if (name.trim().length > 100) {
+            return Response.json({ error: "Name too long (max 100 chars)" }, { status: 400 });
         }
 
         await connectDB();
 
-        const count = await Board.countDocuments({ userId: session.user.uid });
+        const count = await Board.countDocuments({ "user.uid": session.user.uid });
         if (count >= MAX_BOARDS) {
             return Response.json({ error: `Max ${MAX_BOARDS} soundboards per user` }, { status: 429 });
         }
 
         const board = await Board.create({
-            userId:   session.user.uid,
-            name:     name.trim(),
-            isPublic: true,
+            name:       name.trim(),
+            user:       { uid: session.user.uid, name: session.user.name ?? "User" },
+            visibility: true,
         });
 
-        // Add initial sound if provided
         if (s_id && typeof s_id === "string") {
-            await SbModel.create({ sb_id: board.sbId, s_id }).catch(() => null);
+            await SbModel.create({ sb_id: board.sb_id, s_id }).catch(() => null);
         }
 
-        return Response.json({ ok: true, board: {
-            sbId:      board.sbId,
-            name:      board.name,
-            thumbnail: board.thumbnail ?? "",
-            isPublic:  board.isPublic,
-            sounds:    s_id ? [s_id] : [],
-        }}, { status: 201 });
+        return Response.json({
+            ok: true,
+            board: {
+                sb_id:      board.sb_id,
+                name:       board.name,
+                thumb:      board.thumb ?? null,
+                visibility: board.visibility,
+                sounds:     s_id ? [s_id] : [],
+            },
+        }, { status: 201 });
 
     } catch {
         return Response.json({ error: "Server error" }, { status: 500 });

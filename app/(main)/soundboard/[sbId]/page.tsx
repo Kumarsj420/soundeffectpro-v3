@@ -21,8 +21,8 @@ export async function generateMetadata({
     const { sbId } = await params;
     try {
         await connectDB();
-        const board = await Board.findOne({ sbId }).select("name isPublic").lean();
-        if (!board || !board.isPublic) return { title: "Soundboard", robots: { index: false, follow: false } };
+        const board = await Board.findOne({ sb_id: sbId }).select("name visibility").lean();
+        if (!board || !board.visibility) return { title: "Soundboard", robots: { index: false, follow: false } };
         return {
             title: `${board.name} — Soundboard on SoundEffectPro`,
             description: `Listen to this custom soundboard on SoundEffectPro.`,
@@ -62,14 +62,14 @@ export default async function SoundboardPage({
 
     try { await connectDB(); } catch { notFound(); }
 
-    const board = await Board.findOne({ sbId }).lean();
+    const board = await Board.findOne({ sb_id: sbId }).lean();
     if (!board) notFound();
 
-    const isOwner = session?.user.uid === board.userId;
-    if (!board.isPublic && !isOwner) notFound();
+    const isOwner = session?.user.uid === board.user.uid;
+    if (!board.visibility && !isOwner) notFound();
 
-    const links   = await SbModel.find({ sb_id: sbId }).sort({ createdAt: 1 }).lean();
-    const s_ids   = links.map(l => l.s_id);
+    const links  = await SbModel.find({ sb_id: sbId }).sort({ createdAt: 1 }).lean();
+    const s_ids  = links.map(l => l.s_id);
 
     const sounds = s_ids.length
         ? await File.find({ s_id: { $in: s_ids }, visibility: true })
@@ -93,7 +93,7 @@ export default async function SoundboardPage({
                     <div className="min-w-0">
                         <h1 className="text-2xl font-bold truncate">{board.name}</h1>
                         <div className="flex items-center gap-2 text-sm text-white/40 mt-0.5">
-                            {board.isPublic
+                            {board.visibility
                                 ? <><Globe className="h-3.5 w-3.5" /> Public</>
                                 : <><Lock className="h-3.5 w-3.5" /> Private</>
                             }
@@ -103,10 +103,8 @@ export default async function SoundboardPage({
                     </div>
                 </div>
 
-                {/* Share / embed actions */}
                 <div className="flex items-center gap-2 shrink-0">
                     <button
-                        onClick={undefined}
                         data-share-url={shareUrl}
                         className="share-btn rounded-full border border-white/15 hover:border-orange-500/40 hover:text-orange-400 px-4 py-2 text-sm transition-colors"
                         id="sb-share-btn"
@@ -125,10 +123,10 @@ export default async function SoundboardPage({
             </div>
 
             {/* Embed snippet */}
-            {board.isPublic && (
+            {board.visibility && (
                 <details className="rounded-xl border border-white/8 bg-[#111113]">
                     <summary className="px-4 py-3 text-sm text-white/50 cursor-pointer hover:text-white transition-colors select-none">
-                        🔗 Embed this soundboard
+                        Embed this soundboard
                     </summary>
                     <div className="px-4 pb-4 space-y-2">
                         <p className="text-xs text-white/30">Copy this iframe to embed the soundboard on any website:</p>
@@ -153,7 +151,6 @@ export default async function SoundboardPage({
                 </div>
             )}
 
-            {/* Share script — copy URL to clipboard on click */}
             <script dangerouslySetInnerHTML={{ __html: `
                 const btn = document.getElementById('sb-share-btn');
                 if (btn) btn.addEventListener('click', () => {

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { LayoutGrid, Trash2, Globe, Lock, Plus, Loader2, ExternalLink } from "lucide-react";
 
-interface Board { sbId: string; name: string; sounds: string[]; isPublic: boolean; createdAt: string }
+interface Board { sb_id: string; name: string; sounds: string[]; visibility: boolean; createdAt: string }
 
 export default function MySoundboards() {
     const [boards,   setBoards]   = useState<Board[]>([]);
@@ -36,21 +36,21 @@ export default function MySoundboards() {
         setCreating(false);
     }
 
-    async function togglePublic(sbId: string, current: boolean) {
-        const res = await fetch(`/api/soundboard/${sbId}`, {
+    async function togglePublic(sb_id: string, current: boolean) {
+        const res = await fetch(`/api/soundboard/${sb_id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isPublic: !current }),
+            body: JSON.stringify({ visibility: !current }),
         }).catch(() => null);
         if (res?.ok) {
-            setBoards(prev => prev.map(b => b.sbId === sbId ? { ...b, isPublic: !current } : b));
+            setBoards(prev => prev.map(b => b.sb_id === sb_id ? { ...b, visibility: !current } : b));
         }
     }
 
-    async function remove(sbId: string) {
+    async function remove(sb_id: string) {
         if (!confirm("Delete this soundboard?")) return;
-        const res = await fetch(`/api/soundboard/${sbId}`, { method: "DELETE" }).catch(() => null);
-        if (res?.ok) setBoards(prev => prev.filter(b => b.sbId !== sbId));
+        const res = await fetch(`/api/soundboard/${sb_id}`, { method: "DELETE" }).catch(() => null);
+        if (res?.ok) setBoards(prev => prev.filter(b => b.sb_id !== sb_id));
     }
 
     return (
@@ -97,14 +97,14 @@ export default function MySoundboards() {
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {boards.map(b => (
-                    <div key={b.sbId} className="rounded-2xl border border-white/8 bg-[#111113] p-4 space-y-3 hover:border-white/14 transition-colors">
+                    <div key={b.sb_id} className="rounded-2xl border border-white/8 bg-[#111113] p-4 space-y-3 hover:border-white/14 transition-colors">
                         <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                                 <p className="font-semibold truncate">{b.name}</p>
                                 <p className="text-xs text-white/35 mt-0.5">{b.sounds.length} / 30 sounds</p>
                             </div>
                             <button
-                                onClick={() => remove(b.sbId)}
+                                onClick={() => remove(b.sb_id)}
                                 className="shrink-0 p-1.5 rounded-lg hover:bg-red-500/10 text-white/20 hover:text-red-400 transition-colors"
                                 aria-label="Delete"
                             >
@@ -114,19 +114,19 @@ export default function MySoundboards() {
 
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => togglePublic(b.sbId, b.isPublic)}
+                                onClick={() => togglePublic(b.sb_id, b.visibility)}
                                 className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                                    b.isPublic
+                                    b.visibility
                                         ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                                         : "bg-white/6 text-white/40 border border-white/10"
                                 }`}
                             >
-                                {b.isPublic ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-                                {b.isPublic ? "Public" : "Private"}
+                                {b.visibility ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                                {b.visibility ? "Public" : "Private"}
                             </button>
 
                             <Link
-                                href={`/soundboard/${b.sbId}`}
+                                href={`/soundboard/${b.sb_id}`}
                                 className="flex items-center gap-1 text-xs text-white/40 hover:text-orange-400 transition-colors ml-auto"
                             >
                                 Open <ExternalLink className="h-3 w-3" />

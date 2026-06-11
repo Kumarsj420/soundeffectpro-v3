@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { LayoutGrid, Plus, Check, Loader2, ChevronDown, X } from "lucide-react";
 
-interface Board { sbId: string; name: string; sounds: string[] }
+interface Board { sb_id: string; name: string; sounds: string[] }
 
 export default function AddToSoundboard({ s_id }: { s_id: string }) {
     const { data: session } = useSession();
@@ -30,7 +30,7 @@ export default function AddToSoundboard({ s_id }: { s_id: string }) {
                 const inBoards = new Set<string>(
                     (d.boards ?? [])
                         .filter((b: Board) => b.sounds.includes(s_id))
-                        .map((b: Board) => b.sbId)
+                        .map((b: Board) => b.sb_id)
                 );
                 setAdded(inBoards);
             })
@@ -78,7 +78,7 @@ export default function AddToSoundboard({ s_id }: { s_id: string }) {
         if (res?.ok) {
             const { board } = await res.json();
             setBoards(prev => [board, ...prev]);
-            setAdded(prev => new Set([...prev, board.sbId]));
+            setAdded(prev => new Set([...prev, board.sb_id]));
             setNewName("");
         }
         setCreating(false);
@@ -95,7 +95,7 @@ export default function AddToSoundboard({ s_id }: { s_id: string }) {
         );
     }
 
-    const inAny = boards.some(b => added.has(b.sbId));
+    const inAny = boards.some(b => added.has(b.sb_id));
 
     return (
         <div ref={panelRef} className="relative">
@@ -134,12 +134,12 @@ export default function AddToSoundboard({ s_id }: { s_id: string }) {
                             </p>
                         )}
                         {boards.map(b => {
-                            const isAdded  = added.has(b.sbId);
-                            const isBusy   = busy === b.sbId;
+                            const isAdded  = added.has(b.sb_id);
+                            const isBusy   = busy === b.sb_id;
                             return (
                                 <button
-                                    key={b.sbId}
-                                    onClick={() => toggle(b.sbId, isAdded)}
+                                    key={b.sb_id}
+                                    onClick={() => toggle(b.sb_id, isAdded)}
                                     disabled={isBusy}
                                     className="flex w-full items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left disabled:opacity-50"
                                 >

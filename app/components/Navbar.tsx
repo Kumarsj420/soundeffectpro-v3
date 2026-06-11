@@ -19,26 +19,28 @@ import { cn } from "@/app/lib/utils";
 import Logo from "./Logo";
 
 const NAV_CATEGORIES = [
-    { label: "Trending",  href: "/sounds/meme",       icon: Flame,    color: "text-orange-400" },
-    { label: "Meme",      href: "/sounds/meme",       icon: Laugh,    color: "text-yellow-400" },
-    { label: "Gaming",    href: "/search?q=gaming",   icon: Gamepad2, color: "text-emerald-400" },
-    { label: "Anime",     href: "/sounds/anime",      icon: Music2,   color: "text-pink-400" },
-    { label: "Music",     href: "/search?q=music",    icon: Music2,   color: "text-violet-400" },
-    { label: "Latest",    href: "/search?sort=newest",icon: Clock,    color: "text-sky-400" },
+    { label: "Trending",    href: "/sounds/meme",       icon: Flame,       color: "text-orange-400" },
+    { label: "Meme",        href: "/sounds/meme",       icon: Laugh,       color: "text-yellow-400" },
+    { label: "Gaming",      href: "/search?q=gaming",   icon: Gamepad2,    color: "text-emerald-400" },
+    { label: "Anime",       href: "/sounds/anime",      icon: Music2,      color: "text-pink-400" },
+    { label: "Music",       href: "/search?q=music",    icon: Music2,      color: "text-violet-400" },
+    { label: "Latest",      href: "/search?sort=newest",icon: Clock,       color: "text-sky-400" },
+    { label: "Soundboards", href: "/soundboard",        icon: LayoutGrid,  color: "text-orange-300" },
 ];
 
 const DRAWER_LINKS = [
-    { label: "Home",       href: "/",                   icon: Home },
-    { label: "Trending",   href: "/sounds/meme",        icon: Flame },
-    { label: "Viral",      href: "/search?sort=popular",icon: Zap },
-    { label: "Meme",       href: "/sounds/meme",        icon: Laugh },
-    { label: "Anime",      href: "/sounds/anime",       icon: Music2 },
-    { label: "Gaming",     href: "/search?q=gaming",    icon: Gamepad2 },
-    { label: "Music",      href: "/search?q=music",     icon: Music2 },
-    { label: "Latest",     href: "/search?sort=newest", icon: Clock },
-    { label: "Browse All", href: "/search",             icon: Search },
-    { label: "Upload",     href: "/upload",             icon: Upload },
-    { label: "Contact",    href: "/contact",            icon: BookOpen },
+    { label: "Home",        href: "/",                   icon: Home },
+    { label: "Trending",    href: "/sounds/meme",        icon: Flame },
+    { label: "Viral",       href: "/search?sort=popular",icon: Zap },
+    { label: "Meme",        href: "/sounds/meme",        icon: Laugh },
+    { label: "Anime",       href: "/sounds/anime",       icon: Music2 },
+    { label: "Gaming",      href: "/search?q=gaming",    icon: Gamepad2 },
+    { label: "Music",       href: "/search?q=music",     icon: Music2 },
+    { label: "Latest",      href: "/search?sort=newest", icon: Clock },
+    { label: "Soundboards", href: "/soundboard",         icon: LayoutGrid },
+    { label: "Browse All",  href: "/search",             icon: Search },
+    { label: "Upload",      href: "/upload",             icon: Upload },
+    { label: "Contact",     href: "/contact",            icon: BookOpen },
 ];
 
 const POPULAR_TAGS = [

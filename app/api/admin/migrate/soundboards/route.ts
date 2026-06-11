@@ -39,6 +39,11 @@ export async function POST(req: Request) {
     const db = mongoose.connection.db;
     if (!db) return NextResponse.json({ error: "DB not connected" }, { status: 500 });
 
+    // Drop stale indexes from the old Board schema before any upserts
+    await db.collection("soundboards").dropIndex("sbId_1").catch(() => null);
+    await db.collection("soundboards").dropIndex("userId_1").catch(() => null);
+    await db.collection("soundboards").dropIndex("isPublic_1_thumbnail_1_createdAt_-1").catch(() => null);
+
     // ── 1. Categories → soundboards (bulk upsert) ─────────────────────────────
     const categories = await Category.find({}).lean();
     let categoriesMigrated = 0;

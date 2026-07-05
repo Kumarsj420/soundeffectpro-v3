@@ -11,6 +11,8 @@ import AdBanner from "@/app/components/AdBanner";
 import Comments from "@/app/components/Comments";
 import AddToSoundboard from "@/app/components/AddToSoundboard";
 import { parseSoundParam } from "@/app/lib/utils";
+import { auth } from "@/auth";
+import Fav from "@/app/lib/models/Fav";
 
 // 5 min revalidation — keeps content fresh without ISR write spikes
 export const revalidate = 300;
@@ -405,9 +407,32 @@ function LikeButton({ urlParam, likes }: { urlParam: string; likes: number }) {
         <form
             action={async () => {
                 "use server";
-                await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}api/sound/${urlParam}/like`, {
-                    method: "POST",
-                }).catch(() => null);
+                // Toggle the like directly against the DB. Previously this did a
+                // server-side fetch to our own /api/.../like route — a second HTTP
+                // round-trip + function invocation for work we can do inline.
+                try {
+                    const session = await auth();
+                    if (!session?.user?.uid) return;
+
+                    const { s_id } = parseSoundParam(urlParam);
+                    if (!s_id) return;
+
+                    await connectDB();
+                    const uid = session.user.uid;
+
+                    const existing = await Fav.findOne({ uid, s_id }).lean();
+                    if (existing) {
+                        await Promise.all([
+                            Fav.deleteOne({ uid, s_id }),
+                            File.updateOne({ s_id }, { $inc: { "stats.likes": -1 } }),
+                        ]);
+                    } else {
+                        await Promise.all([
+                            Fav.create({ uid, s_id }),
+                            File.updateOne({ s_id }, { $inc: { "stats.likes": 1 } }),
+                        ]);
+                    }
+                } catch { /* ignore — like is best-effort */ }
             }}
         >
             <button

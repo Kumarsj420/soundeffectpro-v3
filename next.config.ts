@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
     output: "standalone",
     serverExternalPackages: ["node-id3", "fluent-ffmpeg", "ffmpeg-static", "archiver"],
     images: {
+        // Optimization disabled: avatars come from provider CDNs and thumbnails
+        // from R2 — all already cached at the edge. Running Next's optimizer on
+        // the origin (sharp) burned CPU/RAM per unique image+size for no benefit.
+        unoptimized: true,
         remotePatterns: [
             { protocol: "https", hostname: "cdn.discordapp.com" },
             { protocol: "https", hostname: "avatars.githubusercontent.com" },
@@ -41,8 +45,6 @@ const nextConfig: NextConfig = {
             { source: '/recent-buttons',        destination: '/', permanent: true },
             { source: '/most-viewed',           destination: '/', permanent: true },
             { source: '/filter-buttons',        destination: '/', permanent: true },
-            { source: '/soundboard',            destination: '/', permanent: true },
-            { source: '/soundboard/:path*',     destination: '/', permanent: true },
             { source: '/filter-board',          destination: '/', permanent: true },
         ];
     },

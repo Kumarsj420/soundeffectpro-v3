@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { connectDB } from "@/app/lib/db";
@@ -75,13 +76,10 @@ function toPlainSound(doc: unknown) {
 
 export default async function CategoryPage({
     params,
-    searchParams,
 }: {
     params: Promise<{ category: string }>;
-    searchParams: Promise<{ sort?: string }>;
 }) {
     const { category } = await params;
-    const { sort = 'popular' } = await searchParams;
 
     const cat = CATEGORY_SLUGS[category];
     if (!cat) notFound();
@@ -90,16 +88,13 @@ export default async function CategoryPage({
 
     await connectDB();
 
-    const sortMap: Record<string, [string, 1 | -1][]> = {
-        popular: [['stats.views', -1]],
-        newest: [['createdAt', -1]],
-        downloads: [['stats.downloads', -1]],
-    };
-    const sortQuery = sortMap[sort] ?? sortMap.popular;
-
+    // Server always renders the "popular" sort so this page stays fully static
+    // and ISR-cacheable (revalidate=600). Reading `sort` from searchParams here
+    // would force the entire route into per-request dynamic rendering — other
+    // sorts are fetched client-side by CategorySounds via useSearchParams instead.
     const [sounds, total] = await Promise.all([
         File.find({ visibility: true, category: cat })
-            .sort(sortQuery)
+            .sort({ "stats.views": -1 })
             .limit(limit)
             .select('s_id slug title duration tags category btnColor stats')
             .lean(),
@@ -147,42 +142,14 @@ export default async function CategoryPage({
                 </p>
             </div>
 
-            {/* Sort tabs */}
-            <div className="flex gap-2 mb-6 border-b border-white/10 pb-4">
-                {[
-                    { label: 'Most Popular', value: 'popular' },
-                    { label: 'Newest', value: 'newest' },
-                    { label: 'Most Downloaded', value: 'downloads' },
-                ].map((opt) => (
-                    <Link
-                        key={opt.value}
-                        href={`/sounds/${category}?sort=${opt.value}`}
-                        className={`px-3 py-1.5 rounded-full text-sm transition-colors ${
-                            sort === opt.value
-                                ? 'bg-orange-500 text-white'
-                                : 'text-white/50 hover:text-white'
-                        }`}
-                    >
-                        {opt.label}
-                    </Link>
-                ))}
-            </div>
-
-            {/* Grid with load more */}
-            {sounds.length > 0 ? (
+            {/* Sort tabs + grid with load more — client-managed so this page stays static */}
+            <Suspense fallback={<div className="h-96" />}>
                 <CategorySounds
-                    key={sort}
                     initial={sounds.map(s => toPlainSound(s as unknown as Record<string, unknown>))}
                     total={total}
                     category={cat}
-                    sort={sort}
                 />
-            ) : (
-                <div className="text-center py-20 text-white/30">
-                    <p className="text-xl mb-2">No {cat} sounds yet</p>
-                    <Link href="/upload" className="text-orange-400 hover:text-orange-300 text-sm">Be the first to upload one →</Link>
-                </div>
-            )}
+            </Suspense>
 
 
             {/* SEO text */}

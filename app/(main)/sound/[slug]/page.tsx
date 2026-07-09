@@ -54,9 +54,13 @@ function autoDescription(
 export async function generateStaticParams() {
     try {
         await connectDB();
+        // Pre-rendering more of the catalog at build time means more real
+        // traffic lands on free static pages instead of triggering on-demand
+        // ISR generation — directly reduces Fast Origin Transfer given
+        // /sound/[slug] is the largest source of origin-served bytes.
         const sounds = await File.find({ visibility: true })
             .sort({ "stats.views": -1 })
-            .limit(500)
+            .limit(2500)
             .select("slug s_id")
             .lean();
         return sounds.map((s) => ({ slug: `${s.slug}-${s.s_id}` }));

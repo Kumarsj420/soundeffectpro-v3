@@ -9,7 +9,9 @@ import { getWeekStart } from "@/app/lib/statsPeriod";
 import LatestSounds from "@/app/components/LatestSounds";
 import AdBanner from "@/app/components/AdBanner";
 
-export const revalidate = 300;
+// Single static page (○, not per-path), so write impact is trivial either way —
+// extended anyway since "Latest/Trending" sections don't need 5-min freshness.
+export const revalidate = 1800;
 
 export const metadata: Metadata = {
     title: "SoundEffectPro — Free Meme & Viral Sound Effects",

@@ -5,7 +5,7 @@ import SbModel from "@/app/lib/models/Sb";
 import { LayoutGrid } from "lucide-react";
 import SoundboardGrid from "./SoundboardGrid";
 
-export const revalidate = 120;
+export const revalidate = 1800;
 
 const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "");
 

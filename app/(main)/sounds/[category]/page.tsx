@@ -9,7 +9,8 @@ import CategorySounds from "@/app/components/CategorySounds";
 
 const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "");
 
-export const revalidate = 600;
+// Only 10 pages total, so absolute write impact is small, but free to extend.
+export const revalidate = 7200;
 export const dynamicParams = false;
 
 export function generateStaticParams() {

@@ -14,11 +14,13 @@ import { parseSoundParam } from "@/app/lib/utils";
 import { auth } from "@/auth";
 import Fav from "@/app/lib/models/Fav";
 
-// This is the only genuinely-ISR route in the app (14.8K total pages, ~500
-// pre-rendered at build). At a 5 min window it was regenerating enough pages
-// to blow through Vercel's monthly ISR Write budget (274K/200K in 3 days).
-// View/like/download counts a bit stale for an hour is imperceptible here.
-export const revalidate = 3600;
+// This is the only genuinely-ISR route in the app (14.8K total pages, 2500
+// pre-rendered at build). This is a free-tier hobby project with no revenue
+// to justify a Pro upgrade, so we're trading freshness for cost: view/like/
+// download counts a day stale is imperceptible to visitors, but a 24h window
+// vs. the original 5min cuts ISR Write volume by ~288x on the route that
+// dominates the monthly write budget (was 639K/200K at the 1hr setting).
+export const revalidate = 86400;
 export const dynamicParams = true;
 
 const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "");

@@ -32,36 +32,40 @@ export async function GET(req: Request) {
         return Response.json({ sounds: [], suggestions: [] });
     }
 
-    await connectDB();
+    try {
+        await connectDB();
 
-    // Run Meilisearch + popular suggestions concurrently
-    const [meiliHits, popularTerms] = await Promise.all([
-        // Meilisearch (or MongoDB fallback)
-        suggestSounds(q, 5).catch(async () => {
-            // Fallback to MongoDB text search
-            const docs = await File.find(
-                { $text: { $search: q }, visibility: true },
-                { score: { $meta: "textScore" } }
-            )
-                .sort({ score: { $meta: "textScore" } })
+        // Run Meilisearch + popular suggestions concurrently
+        const [meiliHits, popularTerms] = await Promise.all([
+            // Meilisearch (or MongoDB fallback)
+            suggestSounds(q, 5).catch(async () => {
+                // Fallback to MongoDB text search
+                const docs = await File.find(
+                    { $text: { $search: q }, visibility: true },
+                    { score: { $meta: "textScore" } }
+                )
+                    .sort({ score: { $meta: "textScore" } })
+                    .limit(5)
+                    .select("s_id slug title duration category")
+                    .lean();
+                return docs as { s_id: string; slug: string; title: string; duration: string; category: string }[];
+            }),
+
+            // Popular past queries starting with this prefix
+            SearchQuery.find({
+                term: { $regex: `^${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, $options: "i" },
+            })
+                .sort({ count: -1 })
                 .limit(5)
-                .select("s_id slug title duration category")
-                .lean();
-            return docs as { s_id: string; slug: string; title: string; duration: string; category: string }[];
-        }),
+                .select("term")
+                .lean(),
+        ]);
 
-        // Popular past queries starting with this prefix
-        SearchQuery.find({
-            term: { $regex: `^${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, $options: "i" },
-        })
-            .sort({ count: -1 })
-            .limit(5)
-            .select("term")
-            .lean(),
-    ]);
-
-    return Response.json({
-        sounds:      meiliHits,
-        suggestions: popularTerms.map(t => t.term),
-    });
+        return Response.json({
+            sounds:      meiliHits,
+            suggestions: popularTerms.map(t => t.term),
+        });
+    } catch {
+        return Response.json({ sounds: [], suggestions: [] }, { status: 500 });
+    }
 }

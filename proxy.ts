@@ -16,8 +16,32 @@ const AUTH_GATED_PATHS = ["/upload", "/profile", "/login"];
 
 const REAL_HYPHENATED = new Set(["/content-policy"]);
 
+// Defense-in-depth alongside the Cloudflare WAF rule — catches non-browser
+// HTTP clients/scraper libraries even if Cloudflare is ever bypassed or
+// misconfigured. Deliberately excludes curl/wget since those are common
+// legitimate tools for manual testing/monitoring (including our own).
+// Known-good search engine crawlers (Googlebot, Bingbot, etc.) are NOT
+// blocked — we want them indexing the site.
+const BAD_BOT_UA_PATTERNS = [
+    /bytespider/i, /gptbot/i, /claudebot/i, /ccbot/i, /ahrefsbot/i,
+    /semrushbot/i, /mj12bot/i, /dotbot/i, /dataforseobot/i, /petalbot/i,
+    /amazonbot/i, /python-requests/i, /scrapy/i, /go-http-client/i,
+    /^java\//i, /libwww-perl/i, /apache-httpclient/i, /okhttp/i,
+];
+
+function isBadBot(userAgent: string): boolean {
+    // No UA at all is very unusual for a real browser navigation, but not
+    // for a bare script/HTTP client.
+    if (!userAgent) return true;
+    return BAD_BOT_UA_PATTERNS.some(p => p.test(userAgent));
+}
+
 export async function proxy(req: NextRequest, event: NextFetchEvent) {
     const { pathname } = req.nextUrl;
+
+    if (isBadBot(req.headers.get("user-agent") ?? "")) {
+        return new NextResponse("Forbidden", { status: 403 });
+    }
 
     // ── Legacy URL redirects — plain regex, no auth needed ────────────────────
     // 301: old v2 URL /{slug}-{32-hex s_id}  →  /sound/{slug}-{s_id}

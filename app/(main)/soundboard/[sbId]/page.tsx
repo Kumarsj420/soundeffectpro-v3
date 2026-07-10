@@ -5,12 +5,20 @@ import Board from "@/app/lib/models/Board";
 import SbModel from "@/app/lib/models/Sb";
 import File from "@/app/lib/models/File";
 import SoundCard from "@/app/components/SoundCard";
-import Link from "next/link";
 import { LayoutGrid, Lock, Globe } from "lucide-react";
 import { auth } from "@/auth";
+import MyBoardsLink from "./MyBoardsLink";
 
-export const revalidate = 60;
-
+// NOTE: this route can't use generateStaticParams/ISR like the other pages —
+// the private-board access check below conditionally calls the Dynamic API
+// (auth()) only when a board is private, and Next.js's static-generation
+// engine rejects any Dynamic API call, even a conditional one, inside a
+// route enrolled in static generation (throws DYNAMIC_SERVER_USAGE).
+// Confirmed via local testing. No `revalidate` export either — it has no
+// effect on a fully dynamic route and (also confirmed locally) left stale
+// notFound() responses returning HTTP 200 instead of 404. The auth-skip
+// below still saves the JWT-decode CPU cost on every public-board view,
+// which is most of this route's traffic.
 const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "");
 
 export async function generateMetadata({
@@ -58,15 +66,23 @@ export default async function SoundboardPage({
     params: Promise<{ sbId: string }>;
 }) {
     const { sbId }  = await params;
-    const session   = await auth().catch(() => null);
 
     try { await connectDB(); } catch { notFound(); }
 
     const board = await Board.findOne({ sb_id: sbId }).lean();
     if (!board) notFound();
 
-    const isOwner = session?.user.uid === board.user.uid;
-    if (!board.visibility && !isOwner) notFound();
+    // Only decode the session JWT for private boards — the vast majority of
+    // traffic here is public boards linked from the /soundboard browse page,
+    // and those don't need auth at all. Skipping it for the common case lets
+    // this route stay ISR-cacheable instead of fully dynamic on every visit.
+    // The owner-only "My Boards" shortcut for public boards is handled by a
+    // client component below instead (same session, no server round-trip).
+    if (!board.visibility) {
+        const session = await auth().catch(() => null);
+        const isOwner = session?.user.uid === board.user.uid;
+        if (!isOwner) notFound();
+    }
 
     const links  = await SbModel.find({ sb_id: sbId }).sort({ createdAt: 1 }).lean();
     const s_ids  = links.map(l => l.s_id);
@@ -111,14 +127,7 @@ export default async function SoundboardPage({
                     >
                         Share
                     </button>
-                    {isOwner && (
-                        <Link
-                            href="/my/soundboards"
-                            className="rounded-full border border-white/15 hover:border-white/30 px-4 py-2 text-sm text-white/60 hover:text-white transition-colors"
-                        >
-                            My Boards
-                        </Link>
-                    )}
+                    <MyBoardsLink ownerUid={board.user.uid} />
                 </div>
             </div>
 

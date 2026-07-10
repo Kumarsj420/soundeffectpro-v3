@@ -6,8 +6,17 @@ import User from "@/app/lib/models/User";
 import File from "@/app/lib/models/File";
 import SoundCard from "@/app/components/SoundCard";
 
-export const revalidate = 120;
+// Extended from 2min — profile view counts don't need near-real-time freshness.
+export const revalidate = 1800;
 export const dynamicParams = true;
+
+// Without this, Next.js never enrolls the route in ISR at all — `revalidate`
+// above was silently ignored and every visit ran a full dynamic render
+// (confirmed via build output showing "ƒ" instead of "●"). Empty array is
+// enough: dynamicParams=true still generates + caches on first visit.
+export function generateStaticParams() {
+    return [];
+}
 
 export async function generateMetadata({
     params,

@@ -5,6 +5,15 @@ import File from "@/app/lib/models/File";
 import EmbedPlayer from "./EmbedPlayer";
 
 export const revalidate = 3600;
+export const dynamicParams = true;
+
+// Without this, Next.js never enrolls the route in ISR at all — `revalidate`
+// above was silently ignored and every embed view ran a full dynamic render
+// (confirmed via build output showing "ƒ" instead of "●"). Empty array is
+// enough: dynamicParams=true still generates + caches on first visit.
+export function generateStaticParams() {
+    return [];
+}
 
 const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "");
 

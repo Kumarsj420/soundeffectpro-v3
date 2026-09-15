@@ -60,7 +60,13 @@ export async function GET(
             };
         });
 
-        return NextResponse.json({ sounds, total, page, pages: Math.ceil(total / limit) });
+        // Sound pages fetch this on every view since related sounds moved out of
+        // the cached page, so let the CDN serve repeats instead of invoking the
+        // function. A day of staleness matches the sound page's own revalidate.
+        return NextResponse.json(
+            { sounds, total, page, pages: Math.ceil(total / limit) },
+            { headers: { "Cache-Control": "public, s-maxage=86400, stale-while-revalidate=604800" } },
+        );
     } catch {
         return NextResponse.json({ sounds: [], total: 0, page: 1, pages: 0 }, { status: 500 });
     }

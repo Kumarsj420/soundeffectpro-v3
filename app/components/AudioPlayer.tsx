@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { getR2Url } from "@/app/lib/r2/r2Url";
 import { cn } from "@/app/lib/utils";
+import { trackPlay } from "@/app/lib/trackPlay";
 
 const HUE_MAP: Record<string, string> = {
     '0': 'hue-rotate-0', '20': 'hue-rotate-[20deg]', '125': 'hue-rotate-[125deg]',
@@ -65,7 +66,7 @@ export default function AudioPlayer({ s_id, slug, title, duration, btnColor = '0
             audio.onplay = () => {
                 if (!didTrackPlay.current) {
                     didTrackPlay.current = true;
-                    fetch(`/api/sound/${slug}/play`, { method: "POST" }).catch(() => null);
+                    trackPlay(slug);
                 }
             };
             audioRef.current = audio;

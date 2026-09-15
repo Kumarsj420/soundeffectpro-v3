@@ -26,3 +26,23 @@ export function parseSoundParam(param: string): { slug: string; s_id: string | n
 
   return { slug: param, s_id: null };
 }
+/**
+ * Truncate a counter to 2 significant digits (347 → 340, 45678 → 45000).
+ * Statically cached pages use this instead of exact stats: an exact counter
+ * changes on every play, so every ISR revalidation wrote a new copy of the
+ * page. Rounded values only change when a bucket is crossed, and revalidations
+ * that produce identical output cost no ISR writes.
+ */
+export function roughCount(n: number): number {
+  if (!Number.isFinite(n) || n < 10) return Math.max(0, Math.floor(n || 0));
+  const step = Math.pow(10, Math.floor(Math.log10(n)) - 1);
+  return Math.floor(n / step) * step;
+}
+
+/** roughCount() formatted compactly: 340, 1.2K, 45K, 1.3M. */
+export function formatRoughCount(n: number): string {
+  const r = roughCount(n);
+  if (r >= 1_000_000) return `${+(r / 1_000_000).toFixed(1)}M`;
+  if (r >= 1_000)     return `${+(r / 1_000).toFixed(1)}K`;
+  return String(r);
+}

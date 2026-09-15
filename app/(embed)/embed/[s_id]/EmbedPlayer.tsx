@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { cn } from "@/app/lib/utils";
+import { trackPlay } from "@/app/lib/trackPlay";
 
 const R2 = (process.env.NEXT_PUBLIC_R2_PUBLIC_URL ?? "").replace(/\/$/, "");
 
@@ -59,7 +60,7 @@ export default function EmbedPlayer({ s_id, slug, title, duration, btnColor, cat
         if (!audio.src) {
             audio.src = `${R2}/store/${s_id}.mp3`;
             // fire-and-forget play count
-            fetch(`/api/sound/${slug}/play`, { method: "POST" }).catch(() => null);
+            trackPlay(slug);
         }
 
         setLoading(true);

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { getR2Url } from "@/app/lib/r2/r2Url";
 import { Badge, getCategoryVariant } from "@/app/components/ui/badge";
 import { cn } from "@/app/lib/utils";
+import { trackPlay } from "@/app/lib/trackPlay";
 
 interface SoundCardProps {
     s_id: string;
@@ -317,7 +318,7 @@ export default function SoundCard({ s_id, slug, title, duration, tags, category,
         try {
             await audioRef.current.play();
             setPlaying(true);
-            fetch(`/api/sound/${slug}-${s_id}/play`, { method: "POST" }).catch(() => null);
+            trackPlay(`${slug}-${s_id}`);
         } catch {
             // autoplay blocked or network error
         } finally {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import SoundCard from "@/app/components/SoundCard";
 import AdBanner from "@/app/components/AdBanner";
@@ -15,14 +15,36 @@ interface Props {
     slug:     string;
     category: string;
     tags:     string[];
-    initial:  Sound[];
-    total:    number;
 }
 
-export default function RelatedSounds({ slug, category, tags, initial, total }: Props) {
-    const [sounds,  setSounds]  = useState<Sound[]>(initial);
-    const [page,    setPage]    = useState(1);
+async function fetchRelated(slug: string, category: string, tags: string, page: number) {
+    const params = new URLSearchParams({ page: String(page), category, tags });
+    const res = await fetch(`/api/sound/${slug}/related?${params}`).catch(() => null);
+    if (!res?.ok) return null;
+    return await res.json() as { sounds: Sound[]; total: number };
+}
+
+// Loaded after hydration instead of rendered into the sound page: the 12 cards
+// and their serialized props were ~40% of every cached page, and their live
+// stats changed the page bytes on nearly every ISR revalidation.
+export default function RelatedSounds({ slug, category, tags }: Props) {
+    const [sounds,  setSounds]  = useState<Sound[]>([]);
+    const [total,   setTotal]   = useState(0);
+    const [page,    setPage]    = useState(0);
     const [loading, setLoading] = useState(false);
+
+    const tagKey = tags.slice(0, 3).join(",");
+
+    useEffect(() => {
+        let cancelled = false;
+        fetchRelated(slug, category, tagKey, 1).then(data => {
+            if (cancelled || !data) return;
+            setSounds(data.sounds);
+            setTotal(data.total);
+            setPage(1);
+        });
+        return () => { cancelled = true; };
+    }, [slug, category, tagKey]);
 
     const hasMore = sounds.length < total;
 
@@ -30,14 +52,8 @@ export default function RelatedSounds({ slug, category, tags, initial, total }: 
         if (loading) return;
         setLoading(true);
         const nextPage = page + 1;
-        const params = new URLSearchParams({
-            page:     String(nextPage),
-            category,
-            tags:     tags.slice(0, 3).join(","),
-        });
-        const res = await fetch(`/api/sound/${slug}/related?${params}`).catch(() => null);
-        if (res?.ok) {
-            const data = await res.json() as { sounds: Sound[] };
+        const data = await fetchRelated(slug, category, tagKey, nextPage);
+        if (data) {
             setSounds(prev => [...prev, ...data.sounds]);
             setPage(nextPage);
         }

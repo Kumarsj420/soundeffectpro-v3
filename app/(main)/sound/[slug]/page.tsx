@@ -10,7 +10,7 @@ import ShareButton from "@/app/components/ShareButton";
 import AdBanner from "@/app/components/AdBanner";
 import Comments from "@/app/components/Comments";
 import AddToSoundboard from "@/app/components/AddToSoundboard";
-import { parseSoundParam } from "@/app/lib/utils";
+import { formatRoughCount, parseSoundParam, roughCount } from "@/app/lib/utils";
 import { auth } from "@/auth";
 import Fav from "@/app/lib/models/Fav";
 
@@ -43,8 +43,8 @@ function autoDescription(
     downloads: number
 ): string {
     const topTags = tags.slice(0, 3).join(", ");
-    const plays = views >= 1000 ? `${Math.round(views / 1000)}K` : String(views);
-    const dl = downloads >= 1000 ? `${Math.round(downloads / 1000)}K` : String(downloads);
+    const plays = formatRoughCount(views);
+    const dl = formatRoughCount(downloads);
     return (
         `Download "${title}" — free ${category.toLowerCase()} sound effect MP3. ` +
         `${duration} · ${plays} plays · ${dl} downloads. ` +
@@ -198,23 +198,6 @@ export default async function SoundPage({
     const categorySlug = category.toLowerCase();
     const canonicalUrl = `${BASE}/sound/${canonical}`;
 
-    const relatedFilter = {
-        visibility: true,
-        s_id: { $ne: sound.s_id },
-        $or: [
-            { category: sound.category },
-            { tags: { $in: (sound.tags as string[]).slice(0, 3) } },
-        ],
-    };
-    const [related, relatedTotal] = await Promise.all([
-        File.find(relatedFilter)
-            .sort({ "stats.views": -1 })
-            .limit(12)
-            .select("s_id slug title duration tags category btnColor stats")
-            .lean(),
-        File.countDocuments(relatedFilter),
-    ]);
-
     const s      = toPlainSound(sound as unknown as Record<string, unknown>);
     const stats  = (sound.stats as unknown as Record<string, number>) ?? {};
     const views  = stats.views  ?? 0;
@@ -240,12 +223,12 @@ export default async function SoundPage({
             {
                 "@type": "InteractionCounter",
                 interactionType: "https://schema.org/ListenAction",
-                userInteractionCount: views,
+                userInteractionCount: roughCount(views),
             },
             {
                 "@type": "InteractionCounter",
                 interactionType: "https://schema.org/DownloadAction",
-                userInteractionCount: dl,
+                userInteractionCount: roughCount(dl),
             },
         ],
     };
@@ -314,8 +297,8 @@ export default async function SoundPage({
                             <Link href={`/sounds/${categorySlug}`} className="hover:text-orange-400 transition-colors">
                                 {category}
                             </Link>
-                            <span>{views.toLocaleString()} plays</span>
-                            <span>{dl.toLocaleString()} downloads</span>
+                            <span>{formatRoughCount(views)} plays</span>
+                            <span>{formatRoughCount(dl)} downloads</span>
                         </div>
                     </div>
 
@@ -396,8 +379,6 @@ export default async function SoundPage({
                         slug={canonical}
                         category={category}
                         tags={sound.tags as string[]}
-                        initial={related.map(r => toPlainSound(r as unknown as Record<string, unknown>))}
-                        total={relatedTotal}
                     />
 
             </div>
@@ -451,7 +432,7 @@ function LikeButton({ urlParam, likes }: { urlParam: string; likes: number }) {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 20.364l-7.682-7.682a4.5 4.5 0 010-6.364z" />
                 </svg>
-                {likes.toLocaleString()} Likes
+                {formatRoughCount(likes)} Likes
             </button>
         </form>
     );

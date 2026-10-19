@@ -94,18 +94,6 @@ export default function Footer() {
                                 Email Us
                             </a>
                         </li>
-                         <li>
-                            <a
-                                href={`https://buymeacoffee.com/memecup`}
-                                target="_blank"
-                                className="text-sm  hover:brightness-125 transition-colors"
-                            >
-                                <span className="text-transparent bg-clip-text bg-linear-to-r from-indigo-400 via-blue-400 to-sky-300 ">
-                                    Buy Me Coffee
-                                </span> {' '}
-                                 🥺🤌🏻
-                            </a>
-                        </li>
                     </ul>
                 </div>
             </div>

@@ -8,6 +8,7 @@ import ReportButton from "@/app/components/ReportButton";
 import RelatedSounds from "@/app/components/RelatedSounds";
 import ShareButton from "@/app/components/ShareButton";
 import AdBanner from "@/app/components/AdBanner";
+import CryMeArtBanner from "@/app/components/CryMeArtBanner";
 import Comments from "@/app/components/Comments";
 import AddToSoundboard from "@/app/components/AddToSoundboard";
 import { formatRoughCount, parseSoundParam, roughCount } from "@/app/lib/utils";
@@ -368,6 +369,10 @@ export default async function SoundPage({
                             </div>
                         </div>
                     )}
+
+                    {/* Cry Me Art promo — below the player and sound details, so
+                        the sound itself stays the first thing on screen */}
+                    <CryMeArtBanner inline />
 
                     {/* Comments */}
                     <div className="rounded-2xl border border-white/8 bg-[#141414] p-5">

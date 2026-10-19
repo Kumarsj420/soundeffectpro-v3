@@ -3,6 +3,7 @@ import Navbar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import MobileBottomNav from "@/app/components/MobileBottomNav";
 import AdBanner from "@/app/components/AdBanner";
+import CryMeArtBanner from "@/app/components/CryMeArtBanner";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
     return (
@@ -30,7 +31,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                 className="border-b border-white/5"
             />
             {/* pb-16 on mobile leaves room above the fixed bottom nav */}
-            <main className="flex-1 pb-16 sm:pb-0">{children}</main>
+            <main className="flex-1 pb-16 sm:pb-0">
+                {children}
+                {/* Cry Me Art promo — fallback copy for every page; hidden by
+                    globals.css when the page renders its own inline banner */}
+                <div className="crymeart-promo-fallback mx-auto max-w-7xl px-4 sm:px-6 pb-8">
+                    <CryMeArtBanner />
+                </div>
+            </main>
             {/* Footer only shown on desktop — bottom nav replaces it on mobile */}
             <div className="hidden sm:block">
                 <Footer />

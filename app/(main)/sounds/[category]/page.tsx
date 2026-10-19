@@ -6,6 +6,7 @@ import { connectDB } from "@/app/lib/db";
 import File from "@/app/lib/models/File";
 import { CATEGORY_SLUGS, CATEGORIES } from "@/app/lib/constants";
 import CategorySounds from "@/app/components/CategorySounds";
+import CryMeArtBanner from "@/app/components/CryMeArtBanner";
 
 const BASE = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://soundeffectpro.com").replace(/\/$/, "");
 
@@ -152,6 +153,10 @@ export default async function CategoryPage({
                 />
             </Suspense>
 
+            {/* Cry Me Art promo — below the sound grid */}
+            <div className="mt-8">
+                <CryMeArtBanner inline />
+            </div>
 
             {/* SEO text */}
             <div className="mt-8 rounded-2xl border border-white/8 bg-[#141414] p-6 text-sm text-white/50 leading-relaxed">

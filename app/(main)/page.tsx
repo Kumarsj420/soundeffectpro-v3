@@ -8,6 +8,7 @@ import { Badge } from "@/app/components/ui/badge";
 import { getWeekStart } from "@/app/lib/statsPeriod";
 import LatestSounds from "@/app/components/LatestSounds";
 import AdBanner from "@/app/components/AdBanner";
+import CryMeArtBanner from "@/app/components/CryMeArtBanner";
 
 // Single static page (○, not per-path), so write impact is trivial either way —
 // extended anyway since "Latest/Trending" sections don't need 5-min freshness.
@@ -213,6 +214,8 @@ export default async function HomePage() {
             >
                 <SoundGrid sounds={weekly} cols={4} />
             </Section>
+
+            <CryMeArtBanner inline />
 
             {/* -- Latest -- */}
             <Section

@@ -154,3 +154,10 @@ body {
 .input-field:focus {
   border-color: rgba(249,115,22,0.5);
 }
+
+/* Cry Me Art promo: the (main) layout renders a fallback banner at the end of
+   <main>; pages that place <CryMeArtBanner inline /> themselves hide it so
+   the banner never shows twice. */
+main:has(.crymeart-promo-inline) .crymeart-promo-fallback {
+  display: none;
+}

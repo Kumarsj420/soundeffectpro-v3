@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Waves, Globe, Share2 } from "lucide-react";
 import Logo from "./Logo";
+import TechVinyaLogo from "./TechVinyaLogo";
 
 const CATEGORIES = [
     { label: "Meme Sounds",    href: "/sounds/meme" },
@@ -118,6 +119,17 @@ export default function Footer() {
                     <p className="text-xs text-[#71717a]">
                         Made for meme lovers everywhere 🎵
                     </p>
+                    {/* Parent-company credit: the Tech Vinya lockup, linking to its site. */}
+                    <a
+                        href="https://www.techvinya.com"
+                        target="_blank"
+                        rel="noopener"
+                        aria-label="SoundEffectPro is a Tech Vinya brand — visit Tech Vinya"
+                        className="group inline-flex items-center gap-2.5 text-xs text-[#71717a] hover:text-white transition-colors rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50"
+                    >
+                        <span>A brand of</span>
+                        <TechVinyaLogo className="h-5 text-white transition-transform duration-300 group-hover:scale-105 motion-reduce:group-hover:scale-100" />
+                    </a>
                 </div>
             </div>
         </footer>

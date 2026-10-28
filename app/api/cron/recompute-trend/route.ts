@@ -70,7 +70,9 @@ export async function GET(req: Request) {
                     },
                 },
             },
-        ]
+        ],
+        // Mongoose 9 rejects pipeline (array) updates unless explicitly opted in
+        { updatePipeline: true }
     );
 
     const ms = Date.now() - startedAt;

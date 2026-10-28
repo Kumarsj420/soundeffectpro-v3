@@ -34,8 +34,12 @@ Host github.com
     IdentityFile $DEPLOY_KEY
     IdentitiesOnly yes
 CFG
-    ssh-keyscan -q github.com >> /root/.ssh/known_hosts 2>/dev/null
 fi
+# Trust GitHub's host key (retry: keyscan can time out on a fresh network)
+for _ in 1 2 3; do
+    grep -q '^github.com' /root/.ssh/known_hosts 2>/dev/null && break
+    ssh-keyscan -t ed25519 github.com >> /root/.ssh/known_hosts 2>/dev/null || sleep 3
+done
 
 if [ ! -d "$REPO_DIR/.git" ]; then
     if ! git clone -q "$REPO" "$REPO_DIR" 2>/dev/null; then

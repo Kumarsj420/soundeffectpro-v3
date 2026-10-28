@@ -22,7 +22,9 @@ export async function connectDB() {
         dbName: "soundfx",
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5000,
-        socketTimeoutMS: 10000,
+        // Long enough for bulk jobs like the nightly trend recompute, which
+        // updates every visible sound in one pipeline and exceeds 10s
+        socketTimeoutMS: 45000,
     });
 
     await cache.promise;

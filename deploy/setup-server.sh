@@ -54,6 +54,15 @@ if [ ! -d "$REPO_DIR/.git" ]; then
     fi
 fi
 
+# Origin cert for Cloudflare "Full" SSL (Cloudflare accepts self-signed in Full mode)
+if [ ! -f /etc/ssl/sfx2/origin.pem ]; then
+    mkdir -p /etc/ssl/sfx2
+    openssl req -x509 -nodes -newkey rsa:2048 -days 3650 \
+        -keyout /etc/ssl/sfx2/origin.key -out /etc/ssl/sfx2/origin.pem \
+        -subj "/CN=$DOMAIN" -addext "subjectAltName=DNS:$DOMAIN,DNS:www.$DOMAIN" 2>/dev/null
+    chmod 600 /etc/ssl/sfx2/origin.key
+fi
+
 echo "==> Configuring nginx"
 sed "s/__DOMAIN__/$DOMAIN/g" "$REPO_DIR/deploy/nginx.conf" > /etc/nginx/sites-available/sfx2
 ln -sf /etc/nginx/sites-available/sfx2 /etc/nginx/sites-enabled/sfx2
